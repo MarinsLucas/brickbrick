@@ -3,35 +3,36 @@ import KeyboardState from '../libs/util/KeyboardState.js'
 import {TeapotGeometry} from '../build/jsm/geometries/TeapotGeometry.js';
 import {initRenderer, 
         initCamera, 
+        setDefaultMaterial,
         initDefaultSpotlight,
         createGroundPlaneXZ,
         SecondaryBox, 
         onWindowResize} from "../libs/util/util.js";
+import { DoubleSide } from '../build/three.module.js';
 
 let scene, renderer, light,  keyboard;
 scene = new THREE.Scene();    // Create main scene
 renderer = initRenderer();    // View function in util/utils
 light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light    
-
 keyboard = new KeyboardState();
-
-
-// Create objects
-createTeapot( 0, 0,  0.0, Math.random() * 0xffffff);
-
-
-
+//create borders:
+createBorders();
 
 // Main camera
-const camera = initializeCamera(); //talvez alterar esses valores?
-scene.background = new THREE.Color(0xff0000 );
+const camera = initializeCamera();
+scene.background = new THREE.Color(0x00008B);
 window.addEventListener( 'resize', function(){onWindowResizeOrthographic(camera, renderer)}, false );
 scene.add(camera);
 
+let brickHolder = new THREE.Object3D();
+brickHolder.position.set(-1,2.2,0);
+scene.add(brickHolder);
+
+createBrick(0, 0, 'white', brickHolder);
 
 function initializeCamera()
 {
-   let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.001, 10000);
+   let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
    let w = window.innerHeight/2;
    let h = window.innerHeight;
    let aspect = 0.5;
@@ -78,15 +79,13 @@ function keyboardUpdate() {
    
 }
 
-function createTeapot(x, y, z, color )
-{
-   var geometry = new TeapotGeometry(0.5);
-   var material = new THREE.MeshPhongMaterial({color, shininess:"200"});
-      material.side = THREE.DoubleSide;
+function createBrick(x, y, color, brickHolder){
+   var geometry = new THREE.BoxGeometry(0.3, 0.1, 1);
+   var material = setDefaultMaterial(color);
+   material.side = THREE.DoubleSide;
    var obj = new THREE.Mesh(geometry, material);
-      obj.castShadow = true;
-      obj.position.set(x, y, z);
-   scene.add(obj);
+   obj.position.set(x, y, 0);
+   brickHolder.add(obj);
 }
 
 function render()
@@ -94,4 +93,29 @@ function render()
    requestAnimationFrame(render);
    keyboardUpdate();
    renderer.render(scene, camera) // Render scene
+}
+
+function createBorders()
+{
+   let upBorder = new THREE.BoxGeometry(3 ,0.1, 0.1);
+let borderMaterial = setDefaultMaterial();
+borderMaterial.side = THREE.DoubleSide
+let upb = new THREE.Mesh(upBorder, borderMaterial);
+upb.position.set(0.0, 2.5, 0.0);
+scene.add(upb);
+
+let leftBorder = new THREE.BoxGeometry(0.1, 10, 0.1);
+let lb = new THREE.Mesh(leftBorder, borderMaterial);
+lb.position.set(-1.25, 0.0, 0.0)
+scene.add(lb);
+
+let rightBorder = new THREE.BoxGeometry(0.1, 10, 0.1);
+let rb = new THREE.Mesh(rightBorder, borderMaterial);
+rb.position.set(1.25, 0.0, 0.0);
+scene.add(rb);
+
+let downBorder = new THREE.BoxGeometry(3 ,0.1, 0.1);
+let db = new THREE.Mesh(downBorder, borderMaterial);
+db.position.set(0.0, -2.55, 0.0);
+scene.add(db); 
 }
