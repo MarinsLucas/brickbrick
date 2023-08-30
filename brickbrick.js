@@ -18,7 +18,6 @@ scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
 light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
 keyboard = new KeyboardState();
-//create borders:
 
 // Main camera
 const camera = initializeCamera();
@@ -30,20 +29,58 @@ window.addEventListener(
   },
   false
 );
+window.addEventListener("mousemove", onMouseMove);
 scene.add(camera);
 
 let brickHolder = new THREE.Object3D();
 brickHolder.position.set(-1, 2.2, 0);
 scene.add(brickHolder);
 
+//create borders:
 createBorders();
+
 initializeMatrix(11);
 let pad = createPad();
 let ball = createBall();
 
+let raycaster = new THREE.Raycaster();
+raycaster.layers.enable(0);
+camera.layers.enable(0);
 
+let objects = [];
+let hitbox = createHitbox();
+objects.push(hitbox);
 
 render();
+
+function onMouseMove(event) {
+  let pointer = new THREE.Vector2();
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(pointer, camera);
+  // calculate objects intersecting the picking ray
+  let intersects = raycaster.intersectObjects(objects);
+
+  if (intersects.length > 0) {
+    let point = intersects[0].point;
+    pad.position.set(point.x, -2.1, 0);
+  }
+}
+
+function createHitbox() {
+  var geometry = new THREE.BoxGeometry(1.9, 10, 1);
+  var material = new THREE.MeshStandardMaterial({
+   color: 0x00ff00, // Green color for the box
+   transparent: true, // Enable transparency
+   opacity: 0,     // Set the opacity level (0: fully transparent, 1: fully opaque)
+ });
+  material.side = THREE.DoubleSide;
+  var obj = new THREE.Mesh(geometry, material);
+  obj.position.set(0, 0, 0);
+  scene.add(obj);
+  return obj;
+}
 
 function createBall() {
   var geometry = new THREE.SphereGeometry(0.05, 64, 32);
@@ -56,13 +93,13 @@ function createBall() {
 }
 
 function createPad() {
-   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-   let material = setDefaultMaterial('red');
-   material.side = THREE.DoubleSide;
-   var obj = new THREE.Mesh(geometry, material);
-   obj.position.set(0, -2.1, 0);
-   scene.add(obj);
-   return obj;
+  let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
+  let material = setDefaultMaterial("red");
+  material.side = THREE.DoubleSide;
+  var obj = new THREE.Mesh(geometry, material);
+  obj.position.set(0, -2.1, 0);
+  scene.add(obj);
+  return obj;
 }
 
 /* function createCircle(){
