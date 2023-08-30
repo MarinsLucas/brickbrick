@@ -6,13 +6,6 @@ import {
   setDefaultMaterial,
 } from "../libs/util/util.js";
 
-function Brick(obj, resistance, isColliding) {
-  this.obj = obj;
-  this.resistance = resistance;
-  this.color = "lightgreen";
-  this.isColliding = false;
-}
-
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
@@ -53,6 +46,15 @@ objects.push(hitbox);
 
 render();
 
+/* ------------------ FUNCTIONS ------------------ */
+
+function Brick(obj, resistance, isColliding) {
+  this.obj = obj;
+  this.resistance = resistance;
+  this.color = "lightgreen";
+  this.isColliding = false;
+}
+
 function onMouseMove(event) {
   let pointer = new THREE.Vector2();
   pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -71,10 +73,10 @@ function onMouseMove(event) {
 function createHitbox() {
   var geometry = new THREE.BoxGeometry(1.9, 10, 1);
   var material = new THREE.MeshStandardMaterial({
-   color: 0x00ff00, // Green color for the box
-   transparent: true, // Enable transparency
-   opacity: 0,     // Set the opacity level (0: fully transparent, 1: fully opaque)
- });
+    color: 0x00ff00, // Green color for the box
+    transparent: true, // Enable transparency
+    opacity: 0, // Set the opacity level (0: fully transparent, 1: fully opaque)
+  });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, 0, 0);
