@@ -10,6 +10,26 @@ import {initRenderer,
         onWindowResize} from "../libs/util/util.js";
 import { DoubleSide } from '../build/three.module.js';
 
+function Brick(resistance){
+   this.resistance = resistance;
+   switch(resistance)
+   {
+      case 1:
+         this.color = 'green'; 
+         break; 
+      case 2:
+         this.color = 'yellow'; 
+         break; 
+      case 3:
+         this.color = 'red';
+         break; 
+      case 4:
+         this.color = 'white';
+         break; 
+   }
+}
+
+
 let scene, renderer, light,  keyboard;
 scene = new THREE.Scene();    // Create main scene
 renderer = initRenderer();    // View function in util/utils
@@ -28,7 +48,20 @@ let brickHolder = new THREE.Object3D();
 brickHolder.position.set(-1,2.2,0);
 scene.add(brickHolder);
 
-createBrick(0, 0, 'white', brickHolder);
+let brickMatrix;
+
+let dh = 0.33;
+for(let i =0; i<7; i++)
+{
+   for(let j=0; j<6; j++)
+   {
+      if(j == 0){
+         
+      }
+      brickMatrix[i][j] = createBrick(i*dh, -j*(dh/2), brickProperties, brickHolder);
+   }
+}
+
 
 function initializeCamera()
 {
@@ -86,6 +119,7 @@ function createBrick(x, y, color, brickHolder){
    var obj = new THREE.Mesh(geometry, material);
    obj.position.set(x, y, 0);
    brickHolder.add(obj);
+   return obj;
 }
 
 function render()
