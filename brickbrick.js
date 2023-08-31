@@ -130,9 +130,10 @@ function createPadCollision() {
   for (let index = 0; index < 5; index++) {
     let geometry = new THREE.BoxGeometry(0.12, 0.1, 0.1);
     var material = new THREE.MeshStandardMaterial({
-      color: 0x00ff00, // Green color for the box
+      // make it be a random color for each index
+      color: Math.random() * 0xffffff,
       transparent: true, // Enable transparency
-      opacity: 0.5, // Set the opacity level (0: fully transparent, 1: fully opaque)
+      opacity: 1, // Set the opacity level (0: fully transparent, 1: fully opaque)
     });
     material.side = THREE.DoubleSide;
     var obj = new THREE.Mesh(geometry, material);
