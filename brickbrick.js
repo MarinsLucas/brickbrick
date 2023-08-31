@@ -6,6 +6,14 @@ import {
   setDefaultMaterial,
 } from "../libs/util/util.js";
 
+/* 
+TODO: Fazer a plataforma parar quando encostar na parede
+      Fazer a bola bater na plataforma
+      Fazer a bola bater nas paredes
+      Fazer a bola bater nos tijolos
+*/
+
+
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado
 
 let scene, renderer, light, keyboard;
@@ -37,6 +45,7 @@ createBorders();
 
 initializeMatrix(11);
 let pad = createPad();
+let padCollision = createPadCollision();
 let ball = createBall();
 
 let raycaster = new THREE.Raycaster();
@@ -46,7 +55,7 @@ ball.layers.enable(1);
 //lista de objetos colidíveis.
 
 let objects = [];
-//Essa hitbox, é o espaço onde o pad pode se movimentar!
+//Essa hitbox é o espaço onde o pad pode se movimentar!
 let hitbox = createHitbox();
 objects.push(hitbox);
 
@@ -66,8 +75,10 @@ function onMouseMove(event) {
 
   if (gameStatus == 0 || gameStatus == 1) {
     let pointer = new THREE.Vector2();
-    pointer.x = ((event.clientX - canvasBounds.left) / canvasBounds.width) * 2 - 1;
-    pointer.y = -((event.clientY - canvasBounds.top) / canvasBounds.height) * 2 + 1;
+    pointer.x =
+      ((event.clientX - canvasBounds.left) / canvasBounds.width) * 2 - 1;
+    pointer.y =
+      -((event.clientY - canvasBounds.top) / canvasBounds.height) * 2 + 1;
 
     raycaster.setFromCamera(pointer, camera);
     // calculate objects intersecting the picking ray
@@ -112,6 +123,24 @@ function createPad() {
   obj.position.set(0, -2.1, 0);
   scene.add(obj);
   return obj;
+}
+
+function createPadCollision() {
+  let padCollisionArray = [];
+  for (let index = 0; index < 5; index++) {
+    let geometry = new THREE.BoxGeometry(0.12, 0.1, 0.1);
+    var material = new THREE.MeshStandardMaterial({
+      color: 0x00ff00, // Green color for the box
+      transparent: true, // Enable transparency
+      opacity: 0.5, // Set the opacity level (0: fully transparent, 1: fully opaque)
+    });
+    material.side = THREE.DoubleSide;
+    var obj = new THREE.Mesh(geometry, material);
+    obj.position.set(-0.24 + index * 0.12, 0, 0);
+    pad.add(obj);
+    padCollisionArray.push(obj);
+  }
+  return padCollisionArray;
 }
 
 function initializeMatrix(row) {
