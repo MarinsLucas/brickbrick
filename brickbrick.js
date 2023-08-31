@@ -75,7 +75,7 @@ function onMouseMove(event) {
 }
 
 function createHitbox() {
-  var geometry = new THREE.BoxGeometry(1.9, 10, 1);
+  var geometry = new THREE.BoxGeometry(2, 10, 1);
   var material = new THREE.MeshStandardMaterial({
     color: 0x00ff00, // Green color for the box
     transparent: true, // Enable transparency
