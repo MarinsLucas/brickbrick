@@ -54,11 +54,15 @@ function Brick(obj, resistance, isColliding) {
   this.color = "lightgreen";
   this.isColliding = false;
 }
-
 function onMouseMove(event) {
+  // Get the canvas dimensions
+  const canvasBounds = renderer.domElement.getBoundingClientRect();
+
   let pointer = new THREE.Vector2();
-  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  pointer.x =
+    ((event.clientX - canvasBounds.left) / canvasBounds.width) * 2 - 1;
+  pointer.y =
+    -((event.clientY - canvasBounds.top) / canvasBounds.height) * 2 + 1;
 
   raycaster.setFromCamera(pointer, camera);
   // calculate objects intersecting the picking ray
