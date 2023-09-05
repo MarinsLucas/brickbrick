@@ -348,35 +348,54 @@ function updateBall(ballVelocity) {
     ballVelocity.y *= -1; 
 
     //console.log(padintersects[0]["object"].name.typeof);
-
+    var ang = Math.atan(ballVelocity.y/ballVelocity.x); //angulo da bola
+    console.log(MathUtils.radToDeg(ang));
     switch(padintersects[0]["object"].name)
     {
       case 0:
-        ball.rotateZ(MathUtils.degToRad(10));
+        ballVelocity.reflect(new THREE.Vector3(1,0,0));
+        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-30));
         console.log("0");
         break;
       
       case 1:
         console.log("1");
-        ball.rotateZ(MathUtils.degToRad(20));
-
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+        /* var theta = -2*ang + Math.PI - MathUtils.degToRad(110);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta- ang)) */
+        ballVelocity.reflect(new THREE.Vector3(1,0,0));
+        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-60));
         break;
-
       case 2:
+        console.log("1");
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+        /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        ballVelocity.reflect(new THREE.Vector3(1,0,0));
+        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-90));
         console.log("2");
-        ball.rotateZ(MathUtils.degToRad(30));
 
         break;
 
       case 3:
+        console.log("1");
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+/*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        ballVelocity.reflect(new THREE.Vector3(1,0,0));
+        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-120));
         console.log("3");
-        ball.rotateY(MathUtils.degToRad(40));
 
         break;
 
       case 4:
+        console.log("1");
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+/*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        ballVelocity.reflect(new THREE.Vector3(1,0,0));
+        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-150));
         console.log("4");
-        ball.rotateY(MathUtils.degToRad(50));
 
         break;
     }
