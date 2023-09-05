@@ -289,24 +289,35 @@ function createBrick(x, y, resistance, brickHolder) {
   return brick;
 }
 
-function updateBall() {
-  ball.translateX(0.01);
-  ball.translateY(0.01);
+function updateBall(ballVelocity) {
+  ball.translateX(ballVelocity.x);
+  ball.translateY(ballVelocity.y);
 
-  const raycaster = new THREE.Raycaster();
-  const direction = new THREE.Vector3(0.01, 0.01, 0);
+  const tbraycaster = new THREE.Raycaster();
+  const tbdirection = new THREE.Vector3(0, ballVelocity.y, 0);
 
-  raycaster.ray.origin.copy(ball.position);
-  raycaster.ray.direction.copy(direction);
+  tbraycaster.ray.origin.copy(ball.position);
+  tbraycaster.ray.direction.copy(tbdirection);
 
-  const intersects = raycaster.intersectObjects(collidableMeshList);
+  const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
 
-  if (intersects.length > 0 && intersects[0].distance <= 0.05) {
-    const collidedBrick = intersects[0].object;
+  if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
+    ballVelocity.y *= -1
+    tbintersects[0].object.visible = (false);
+  }
+
+  const lrraycaster = new THREE.Raycaster();
+  const lrdirection = new THREE.Vector3(ballVelocity.x,0, 0);
+
+  tbraycaster.ray.origin.copy(ball.position);
+  tbraycaster.ray.direction.copy(lrdirection);
+
+  const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
+  if (rlintersects.length > 0 && rlintersects[0].distance <= 0.05) {
+    ballVelocity.x *= -1
     console.log("Bateu");
   }
 }
-
 function render() {
   updateBall();
   requestAnimationFrame(render);
