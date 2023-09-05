@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import {
+	MathUtils,
+
+} from 'three';
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import {
@@ -21,6 +25,8 @@ scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
 light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
 keyboard = new KeyboardState();
+var ballVelocity = new THREE.Vector3(0.01,0.01,0);
+let dh = 0.33; //delta de 
 
 // Main camera
 const camera = initializeCamera();
@@ -39,9 +45,7 @@ scene.add(camera);
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
 // Enable pointer lock when a user clicks on the canvas
-renderer.domElement.addEventListener("click", () => {
-  controls.lock();
-});
+
 
 let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
@@ -51,7 +55,8 @@ scene.add(brickHolder);
 //create borders:
 createBorders();
 
-initializeMatrix(11);
+var rows = 11;
+var brickMatrix = initializeMatrix(rows);
 let pad = createPad();
 let padCollision = createPadCollision();
 let ball = createBall();
@@ -79,11 +84,11 @@ render();
 
 /* ------------------ FUNCTIONS ------------------ */
 
-function Brick(obj, resistance, isColliding) {
+function Brick(obj, resistance) {
   this.obj = obj;
   this.resistance = resistance;
   this.color = "lightgreen";
-  this.isColliding = false;
+  this.id = 0; 
 }
 
 // Function to toggle pointer lock status
@@ -189,11 +194,13 @@ function createPadCollision() {
     material.side = THREE.DoubleSide;
     var obj = new THREE.Mesh(geometry, material);
     obj.position.set(-0.24 + index * 0.12, 0, 0);
+    obj.name = index;
     pad.add(obj);
     padCollisionArray.push(obj);
   }
   return padCollisionArray;
 }
+
 
 function initializeMatrix(row) {
   // Initialize a 2D matrix with null values
@@ -202,14 +209,13 @@ function initializeMatrix(row) {
     .map(() => new Array(row).fill(null));
 
   let resistance = 1;
-
-  let dh = 0.33;
+  let a = 0;
   for (let i = 0; i < 7; i++) {
     for (let j = 0; j < row; j++) {
       if (j == 0) {
         resistance = 2;
       } else {
-        resistance = 1;
+        resistance = 3;
       }
 
       brickMatrix[i][j] = createBrick(
@@ -218,8 +224,14 @@ function initializeMatrix(row) {
         resistance,
         brickHolder
       );
+
+      brickMatrix[i][j].obj.name = a;
+      brickMatrix[i][j].id = a; 
+      a++;
     }
   }
+
+  return brickMatrix;
 }
 
 function initializeCamera() {
@@ -260,6 +272,34 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
   renderer.setSize(w, h);
 }
 
+function updateBrick(brick)
+{
+  var obj = brick.obj;
+
+  switch (brick.resistance) {
+    case 0:
+      obj.position.set(1000,1000,1000);
+    case 1:
+      brick.color = "lightgreen";
+      break;
+    case 2:
+      brick.color = "yellow";
+      break;
+    case 3:
+      brick.color = "orange";
+      break;
+    case 4:
+      brick.color = "red";
+      break;
+
+  }
+
+  if(brick.resistance != 0)
+  {
+    obj.material.color.setColorName( brick.color );
+  }
+}
+
 function createBrick(x, y, resistance, brickHolder) {
   var obj, color;
   var geometry = new THREE.BoxGeometry(0.3, 0.1, 1);
@@ -272,16 +312,17 @@ function createBrick(x, y, resistance, brickHolder) {
       color = "yellow";
       break;
     case 3:
-      color = "red";
+      color = "orange";
       break;
     case 4:
-      color = "white";
+      color = "red";
       break;
   }
 
   var material = setDefaultMaterial(color);
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
+  obj.name = "brick";
   obj.position.set(x, y, 0);
   brickHolder.add(obj);
   collidableMeshList.push(obj);
@@ -300,10 +341,70 @@ function updateBall(ballVelocity) {
   tbraycaster.ray.direction.copy(tbdirection);
 
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
+  const padintersects = tbraycaster.intersectObjects(padCollision);
+
+  if(padintersects.length > 0 && padintersects[0].distance <= 0.05)
+  {
+    ballVelocity.y *= -1; 
+
+    //console.log(padintersects[0]["object"].name.typeof);
+
+    switch(padintersects[0]["object"].name)
+    {
+      case 0:
+        ball.rotateZ(MathUtils.degToRad(10));
+        console.log("0");
+        break;
+      
+      case 1:
+        console.log("1");
+        ball.rotateZ(MathUtils.degToRad(20));
+
+        break;
+
+      case 2:
+        console.log("2");
+        ball.rotateZ(MathUtils.degToRad(30));
+
+        break;
+
+      case 3:
+        console.log("3");
+        ball.rotateY(MathUtils.degToRad(40));
+
+        break;
+
+      case 4:
+        console.log("4");
+        ball.rotateY(MathUtils.degToRad(50));
+
+        break;
+    }
+  }
 
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1
-    tbintersects[0].object.visible = (false);
+  
+    if(tbintersects[0]['object'].parent == brickHolder)
+    {
+      var id = tbintersects[0]['object'].name.parseInt;
+      for(let i = 0; i<7;i++)
+      {
+        for(let j = rows-1; j>=0; j--)
+        {
+          if(brickMatrix[i][j].obj == tbintersects[0]['object'])
+          {
+            brickMatrix[i][j].resistance--;
+            updateBrick(brickMatrix[i][j]);
+            return;
+          }
+        }
+      }
+    }
+    else if(tbintersects[0]['object'].name =="down")
+    {
+      console.log("sou tricolor de coração");
+    }
   }
 
   const lrraycaster = new THREE.Raycaster();
@@ -315,11 +416,28 @@ function updateBall(ballVelocity) {
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
   if (rlintersects.length > 0 && rlintersects[0].distance <= 0.05) {
     ballVelocity.x *= -1
-    console.log("Bateu");
+    
+    if(rlintersects[0]['object'].parent == brickHolder)
+    {
+      var id = rlintersects[0]['object'].name.parseInt;
+      for(let i = 0; i<7;i++)
+      {
+        for(let j = rows-1; j>=0; j--)
+        {
+          if(brickMatrix[i][j].obj == rlintersects[0]['object'])
+          {
+            brickMatrix[i][j].resistance--;
+            updateBrick(brickMatrix[i][j]);
+            return;
+          }
+        }
+      }
+      
+    }
   }
 }
 function render() {
-  updateBall();
+  updateBall(ballVelocity);
   requestAnimationFrame(render);
   renderer.render(scene, camera); // Render scene
 }
@@ -330,24 +448,28 @@ function createBorders() {
   borderMaterial.side = THREE.DoubleSide;
   let upb = new THREE.Mesh(upBorder, borderMaterial);
   upb.position.set(0.0, 2.5, 0.0);
+  upb.name = "up";
   scene.add(upb);
   collidableMeshList.push(upb);
 
   let leftBorder = new THREE.BoxGeometry(0.1, 10, 0.1);
   let lb = new THREE.Mesh(leftBorder, borderMaterial);
   lb.position.set(-1.25, 0.0, 0.0);
+  lb.name = "left";
   scene.add(lb);
   collidableMeshList.push(lb);
 
   let rightBorder = new THREE.BoxGeometry(0.1, 10, 0.1);
   let rb = new THREE.Mesh(rightBorder, borderMaterial);
   rb.position.set(1.25, 0.0, 0.0);
+  rb.name = "right";
   scene.add(rb);
   collidableMeshList.push(rb);
 
   let downBorder = new THREE.BoxGeometry(3, 0.1, 0.1);
   let db = new THREE.Mesh(downBorder, borderMaterial);
   db.position.set(0.0, -2.55, 0.0);
+  db.name = "down";
   scene.add(db);
   collidableMeshList.push(db);
 }
