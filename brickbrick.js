@@ -1,8 +1,5 @@
 import * as THREE from "three";
-import {
-	MathUtils,
-
-} from 'three';
+import { MathUtils } from "three";
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import {
@@ -25,8 +22,8 @@ scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
 light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
 keyboard = new KeyboardState();
-var ballVelocity = new THREE.Vector3(0.01,0.01,0);
-let dh = 0.33; //delta de 
+var ballVelocity = new THREE.Vector3(0.0, 0.03, 0);
+let dh = 0.33; //delta de
 
 // Main camera
 const camera = initializeCamera();
@@ -45,7 +42,6 @@ scene.add(camera);
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
 // Enable pointer lock when a user clicks on the canvas
-
 
 let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
@@ -88,7 +84,7 @@ function Brick(obj, resistance) {
   this.obj = obj;
   this.resistance = resistance;
   this.color = "lightgreen";
-  this.id = 0; 
+  this.id = 0;
 }
 
 // Function to toggle pointer lock status
@@ -201,7 +197,6 @@ function createPadCollision() {
   return padCollisionArray;
 }
 
-
 function initializeMatrix(row) {
   // Initialize a 2D matrix with null values
   const brickMatrix = new Array(7)
@@ -226,7 +221,7 @@ function initializeMatrix(row) {
       );
 
       brickMatrix[i][j].obj.name = a;
-      brickMatrix[i][j].id = a; 
+      brickMatrix[i][j].id = a;
       a++;
     }
   }
@@ -272,13 +267,12 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
   renderer.setSize(w, h);
 }
 
-function updateBrick(brick)
-{
+function updateBrick(brick) {
   var obj = brick.obj;
 
   switch (brick.resistance) {
     case 0:
-      obj.position.set(1000,1000,1000);
+      obj.position.set(1000, 1000, 1000);
     case 1:
       brick.color = "lightgreen";
       break;
@@ -291,12 +285,10 @@ function updateBrick(brick)
     case 4:
       brick.color = "red";
       break;
-
   }
 
-  if(brick.resistance != 0)
-  {
-    obj.material.color.setColorName( brick.color );
+  if (brick.resistance != 0) {
+    obj.material.color.setColorName(brick.color);
   }
 }
 
@@ -343,115 +335,108 @@ function updateBall(ballVelocity) {
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
   const padintersects = tbraycaster.intersectObjects(padCollision);
 
-  if(padintersects.length > 0 && padintersects[0].distance <= 0.05)
-  {
-    ballVelocity.y *= -1; 
+  if (padintersects.length > 0 && padintersects[0].distance <= 0.05) {
+    ballVelocity.y *= -1;
 
     //console.log(padintersects[0]["object"].name.typeof);
-    var ang = Math.atan(ballVelocity.y/ballVelocity.x); //angulo da bola
-    console.log(MathUtils.radToDeg(ang));
-    switch(padintersects[0]["object"].name)
-    {
+    let angle;
+
+    switch (padintersects[0]["object"].name) {
       case 0:
-        ballVelocity.reflect(new THREE.Vector3(1,0,0));
-        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-30));
-        console.log("0");
+        angle = 45;
         break;
-      
+
       case 1:
         console.log("1");
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /* var theta = -2*ang + Math.PI - MathUtils.degToRad(110);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta- ang)) */
-        ballVelocity.reflect(new THREE.Vector3(1,0,0));
-        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-60));
+        angle = 30;
         break;
       case 2:
-        console.log("1");
+        angle = 0;
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
-        ballVelocity.reflect(new THREE.Vector3(1,0,0));
-        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-90));
-        console.log("2");
-
         break;
 
       case 3:
-        console.log("1");
+        angle = -30;
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-/*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
+        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
-        ballVelocity.reflect(new THREE.Vector3(1,0,0));
-        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-120));
         console.log("3");
-
         break;
 
       case 4:
-        console.log("1");
+        angle = -45;
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-/*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
+        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
-        ballVelocity.reflect(new THREE.Vector3(1,0,0));
-        ballVelocity.applyAxisAngle(new THREE.Vector3(0,0,1), MathUtils.degToRad(-150));
         console.log("4");
-
         break;
     }
+
+    var ang = Math.atan(ballVelocity.y / ballVelocity.x); //angulo da bola
+
+    
+    if (ang < 0 && angle > 0) {
+      // inverts the angle
+      ballVelocity.reflect(new THREE.Vector3(1, 0, 0));
+    }
+
+    if (ang > 0 && angle < 0) {
+      // inverts the angle
+      ballVelocity.reflect(new THREE.Vector3(1, 0, 0));
+    }
+
+    console.log("ball angle: " + MathUtils.radToDeg(ang));
+
+    ballVelocity.reflect(new THREE.Vector3(1, 0, 0));
+    ballVelocity.applyAxisAngle(
+      new THREE.Vector3(0, 0, 1),
+      MathUtils.degToRad(angle)
+    );
+    console.log("platform angle: " + angle);
   }
 
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
-    ballVelocity.y *= -1
-  
-    if(tbintersects[0]['object'].parent == brickHolder)
-    {
-      var id = tbintersects[0]['object'].name.parseInt;
-      for(let i = 0; i<7;i++)
-      {
-        for(let j = rows-1; j>=0; j--)
-        {
-          if(brickMatrix[i][j].obj == tbintersects[0]['object'])
-          {
+    ballVelocity.y *= -1;
+
+    if (tbintersects[0]["object"].parent == brickHolder) {
+      var id = tbintersects[0]["object"].name.parseInt;
+      for (let i = 0; i < 7; i++) {
+        for (let j = rows - 1; j >= 0; j--) {
+          if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             brickMatrix[i][j].resistance--;
             updateBrick(brickMatrix[i][j]);
             return;
           }
         }
       }
-    }
-    else if(tbintersects[0]['object'].name =="down")
-    {
+    } else if (tbintersects[0]["object"].name == "down") {
       console.log("sou tricolor de coração");
     }
   }
 
   const lrraycaster = new THREE.Raycaster();
-  const lrdirection = new THREE.Vector3(ballVelocity.x,0, 0);
+  const lrdirection = new THREE.Vector3(ballVelocity.x, 0, 0);
 
   tbraycaster.ray.origin.copy(ball.position);
   tbraycaster.ray.direction.copy(lrdirection);
 
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
   if (rlintersects.length > 0 && rlintersects[0].distance <= 0.05) {
-    ballVelocity.x *= -1
-    
-    if(rlintersects[0]['object'].parent == brickHolder)
-    {
-      var id = rlintersects[0]['object'].name.parseInt;
-      for(let i = 0; i<7;i++)
-      {
-        for(let j = rows-1; j>=0; j--)
-        {
-          if(brickMatrix[i][j].obj == rlintersects[0]['object'])
-          {
+    ballVelocity.x *= -1;
+
+    if (rlintersects[0]["object"].parent == brickHolder) {
+      var id = rlintersects[0]["object"].name.parseInt;
+      for (let i = 0; i < 7; i++) {
+        for (let j = rows - 1; j >= 0; j--) {
+          if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
             brickMatrix[i][j].resistance--;
             updateBrick(brickMatrix[i][j]);
             return;
           }
         }
       }
-      
     }
   }
 }
