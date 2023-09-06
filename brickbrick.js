@@ -6,6 +6,7 @@ import {
   initDefaultSpotlight,
   initRenderer,
   setDefaultMaterial,
+  SecondaryBox,
 } from "../libs/util/util.js";
 
 /* 
@@ -75,6 +76,8 @@ playerControls.addEventListener("lock", () => {
 playerControls.addEventListener("unlock", () => {
   isPointerLocked = false;
 });
+var message = new SecondaryBox("");
+
 
 render();
 
@@ -180,7 +183,7 @@ function createPad() {
 function createPadCollision() {
   let padCollisionArray = [];
   for (let index = 0; index < 5; index++) {
-    let geometry = new THREE.BoxGeometry(0.12, 0.1, 0.1);
+    let geometry = new THREE.BoxGeometry(0.13, 0.1, 0.1);
     var material = new THREE.MeshStandardMaterial({
       // make it be a random color for each index
       color: Math.random() * 0xffffff,
@@ -335,7 +338,7 @@ function updateBall(ballVelocity) {
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
   const padintersects = tbraycaster.intersectObjects(padCollision);
 
-  if (padintersects.length > 0 && padintersects[0].distance <= 0.05) {
+  if (padintersects.length > 0 && padintersects[0].distance <= 0.07) {
     ballVelocity.y *= -1;
 
     //console.log(padintersects[0]["object"].name.typeof);
@@ -344,6 +347,7 @@ function updateBall(ballVelocity) {
     switch (padintersects[0]["object"].name) {
       case 0:
         angle = 45;
+        console.log("0");
         break;
 
       case 1:
@@ -355,6 +359,7 @@ function updateBall(ballVelocity) {
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        console.log("2");
         break;
 
       case 3:
@@ -366,7 +371,7 @@ function updateBall(ballVelocity) {
         break;
 
       case 4:
-        angle = -45;
+        angle = -70;
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
@@ -375,6 +380,7 @@ function updateBall(ballVelocity) {
     }
 
     var ang = Math.atan(ballVelocity.y / ballVelocity.x); //angulo da bola
+    var min_ang = 46;
 
     
     if (ang < 0 && angle > 0) {
@@ -394,7 +400,20 @@ function updateBall(ballVelocity) {
       new THREE.Vector3(0, 0, 1),
       MathUtils.degToRad(angle)
     );
-    console.log("platform angle: " + angle);
+    
+    if( MathUtils.radToDeg(Math.abs(Math.atan(ballVelocity.y / ballVelocity.x))) < 20 )
+    {
+      console.log("ANGULO MÍNIMO NEGATIVO" +  Math.abs(Math.atan(ballVelocity.y / ballVelocity.x)));
+      ballVelocity.x = 0.03 * (Math.abs(ballVelocity.x)/ballVelocity.x);
+      ballVelocity.y = 0;
+      ballVelocity.applyAxisAngle(
+        new THREE.Vector3(0, 0, 1),
+        MathUtils.degToRad(20* (Math.abs(ballVelocity.x)/ballVelocity.x) )
+      );
+    }
+    
+    console.log("platform angle: " + (angle+ang));
+
   }
 
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
@@ -412,7 +431,7 @@ function updateBall(ballVelocity) {
         }
       }
     } else if (tbintersects[0]["object"].name == "down") {
-      console.log("sou tricolor de coração");
+      //console.log("sou tricolor de coração");
     }
   }
 
@@ -423,6 +442,7 @@ function updateBall(ballVelocity) {
   tbraycaster.ray.direction.copy(lrdirection);
 
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
+  const rlpadintersects = tbraycaster.intersectObjects(padCollision);
   if (rlintersects.length > 0 && rlintersects[0].distance <= 0.05) {
     ballVelocity.x *= -1;
 
@@ -439,11 +459,24 @@ function updateBall(ballVelocity) {
       }
     }
   }
+
+  if(rlpadintersects.length > 0 && rlpadintersects[0].distance <= 0.05)
+  {
+
+  }
 }
 function render() {
   updateBall(ballVelocity);
+  updateBallAngle();
   requestAnimationFrame(render);
   renderer.render(scene, camera); // Render scene
+}
+
+function updateBallAngle(){
+  var ang = Math.atan(ballVelocity.y / ballVelocity.x);
+  ang = MathUtils.radToDeg(ang);
+  message.changeMessage("Ball angle: " + (ang));
+
 }
 
 function createBorders() {
