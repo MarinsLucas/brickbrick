@@ -52,7 +52,7 @@ scene.add(brickHolder);
 //create borders:
 createBorders();
 
-var rows = 11;
+var rows = 20;
 var brickMatrix = initializeMatrix(rows);
 let pad = createPad();
 let padCollision = createPadCollision();
@@ -165,7 +165,7 @@ function createBall() {
   var material = new THREE.MeshBasicMaterial({ color: 0xffffff });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
-  obj.position.set(0, 0.1, 0);
+  obj.position.set(0, -1, 0);
   scene.add(obj);
   return obj;
 }
@@ -346,16 +346,16 @@ function updateBall(ballVelocity) {
 
     switch (padintersects[0]["object"].name) {
       case 0:
-        angle = 45;
-        console.log("0");
+        angle = MathUtils.degToRad(60);
         break;
 
       case 1:
         console.log("1");
-        angle = 30;
+        angle =  MathUtils.degToRad(70);
+
         break;
       case 2:
-        angle = 0;
+        angle =  MathUtils.degToRad(90);
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
@@ -363,7 +363,7 @@ function updateBall(ballVelocity) {
         break;
 
       case 3:
-        angle = -30;
+        angle =  MathUtils.degToRad(-70);
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
@@ -371,7 +371,7 @@ function updateBall(ballVelocity) {
         break;
 
       case 4:
-        angle = -70;
+        angle =  MathUtils.degToRad(-60);
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
@@ -379,41 +379,10 @@ function updateBall(ballVelocity) {
         break;
     }
 
-    var ang = Math.atan(ballVelocity.y / ballVelocity.x); //angulo da bola
-    var min_ang = 46;
-
     
-    if (ang < 0 && angle > 0) {
-      // inverts the angle
-      ballVelocity.reflect(new THREE.Vector3(1, 0, 0));
-    }
-
-    if (ang > 0 && angle < 0) {
-      // inverts the angle
-      ballVelocity.reflect(new THREE.Vector3(1, 0, 0));
-    }
-
-    console.log("ball angle: " + MathUtils.radToDeg(ang));
-
-    ballVelocity.reflect(new THREE.Vector3(1, 0, 0));
-    ballVelocity.applyAxisAngle(
-      new THREE.Vector3(0, 0, 1),
-      MathUtils.degToRad(angle)
-    );
     
-    if( MathUtils.radToDeg(Math.abs(Math.atan(ballVelocity.y / ballVelocity.x))) < 20 )
-    {
-      console.log("ANGULO MÍNIMO NEGATIVO" +  Math.abs(Math.atan(ballVelocity.y / ballVelocity.x)));
-      ballVelocity.x = 0.03 * (Math.abs(ballVelocity.x)/ballVelocity.x);
-      ballVelocity.y = 0;
-      ballVelocity.applyAxisAngle(
-        new THREE.Vector3(0, 0, 1),
-        MathUtils.degToRad(20* (Math.abs(ballVelocity.x)/ballVelocity.x) )
-      );
-    }
-    
-    console.log("platform angle: " + (angle+ang));
-
+    newReflect(ballVelocity, new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize())
+    //ballVelocity.reflect(new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).normalize());  
   }
 
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
@@ -443,6 +412,7 @@ function updateBall(ballVelocity) {
 
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
   const rlpadintersects = tbraycaster.intersectObjects(padCollision);
+
   if (rlintersects.length > 0 && rlintersects[0].distance <= 0.05) {
     ballVelocity.x *= -1;
 
@@ -462,8 +432,58 @@ function updateBall(ballVelocity) {
 
   if(rlpadintersects.length > 0 && rlpadintersects[0].distance <= 0.05)
   {
+    ballVelocity.x *= -1;
 
+    //console.log(padintersects[0]["object"].name.typeof);
+    let angle;
+
+    switch (rlpadintersects[0]["object"].name) {
+      case 0:
+        angle = MathUtils.degToRad(60);
+        break;
+
+      case 1:
+        console.log("1");
+        angle =  MathUtils.degToRad(70);
+
+        break;
+      case 2:
+        angle =  MathUtils.degToRad(90);
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+        /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        console.log("2");
+        break;
+
+      case 3:
+        angle =  MathUtils.degToRad(-70);
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        console.log("3");
+        break;
+
+      case 4:
+        angle =  MathUtils.degToRad(-60);
+        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
+        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
+        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
+        console.log("4");
+        break;
+    }
+
+    
+    
+    newReflect(ballVelocity, new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize())
+    //ballVelocity.reflect(new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).normalize());  
   }
+}
+
+function newReflect(v,normal)
+{
+  var v1 = new THREE.Vector3();
+
+  return v.sub(v1.copy(normal).multiplyScalar(2 * v.dot(normal)));
 }
 function render() {
   updateBall(ballVelocity);
