@@ -26,6 +26,8 @@ keyboard = new KeyboardState();
 var ballVelocity = new THREE.Vector3(0.0, 0.03, 0);
 let dh = 0.33; //delta de
 
+const clock = new THREE.Clock();
+var tempoDecorrido = 0; 
 // Main camera
 const camera = initializeCamera();
 const auxCamera = initializeCamera();
@@ -326,6 +328,8 @@ function createBrick(x, y, resistance, brickHolder) {
 }
 
 function updateBall(ballVelocity) {
+  console.log(tempoDecorrido)
+  tempoDecorrido = clock.getElapsedTime(); 
   ball.translateX(ballVelocity.x);
   ball.translateY(ballVelocity.y);
 
@@ -338,8 +342,11 @@ function updateBall(ballVelocity) {
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
   const padintersects = tbraycaster.intersectObjects(padCollision);
 
-  if (padintersects.length > 0 && padintersects[0].distance <= 0.07) {
+  if (padintersects.length > 0 && padintersects[0].distance <= 0.07 && tempoDecorrido > 1) {
     ballVelocity.y *= -1;
+    tempoDecorrido = 0; 
+    clock.stop();
+  clock.start();
 
     //console.log(padintersects[0]["object"].name.typeof);
     let angle;
@@ -379,15 +386,18 @@ function updateBall(ballVelocity) {
         break;
     }
 
-    
-    
     newReflect(ballVelocity, new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize())
     //ballVelocity.reflect(new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).normalize());  
-  }
 
+  var ang = Math.atan(ballVelocity.y / ballVelocity.x);
+  var min_angle = MathUtils.degToRad(30);
+  if(Math.abs(ang) < min_angle){
+    ballVelocity.x =  0.03* Math.cos(min_angle) *  (ballVelocity.x/Math.abs(ballVelocity.x)); 
+    ballVelocity.y =  0.03* Math.sin(min_angle) *  (ballVelocity.y/Math.abs(ballVelocity.y));
+  }
+}
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
-
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
       for (let i = 0; i < 7; i++) {
@@ -430,10 +440,12 @@ function updateBall(ballVelocity) {
     }
   }
 
-  if(rlpadintersects.length > 0 && rlpadintersects[0].distance <= 0.05)
+  if(rlpadintersects.length > 0 && rlpadintersects[0].distance <= 0.05 && tempoDecorrido >1)
   {
-    ballVelocity.x *= -1;
-
+    ballVelocity.y *= -1;
+    tempoDecorrido = 0;
+    clock.stop();
+  clock.start();
     //console.log(padintersects[0]["object"].name.typeof);
     let angle;
 
