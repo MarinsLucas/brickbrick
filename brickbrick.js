@@ -16,22 +16,19 @@ TODO: Fazer a plataforma parar quando encostar na parede
       Fazer a bola bater nos tijolos
 */
 
-let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado
+var message = new SecondaryBox("");
 
+const camera, auxCamera, playerControls, clock;
+var tempoDecorrido;
+let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
 let scene, renderer, light, keyboard;
-scene = new THREE.Scene(); // Create main scene
-renderer = initRenderer(); // View function in util/utils
-light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
-keyboard = new KeyboardState();
-var ballVelocity = new THREE.Vector3(0.0, 0.03, 0);
-let dh = 0.33; //delta de
+let dh;
+let collidableMeshList, brickHolder;
+var rows, brickMatrix;
+let pad, padCollision, ball;
+let isPointerLocked;
+var ballVelocity;
 
-const clock = new THREE.Clock();
-var tempoDecorrido = 0; 
-// Main camera
-const camera = initializeCamera();
-const auxCamera = initializeCamera();
-scene.background = new THREE.Color(0x00008b);
 window.addEventListener(
   "resize",
   function () {
@@ -39,34 +36,27 @@ window.addEventListener(
   },
   false
 );
-//window.addEventListener("mousemove", onMouseMove);
-scene.add(camera);
-
-const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
-
-// Enable pointer lock when a user clicks on the canvas
-
-let collidableMeshList = [];
-let brickHolder = new THREE.Object3D();
-brickHolder.position.set(-1, 2.2, 0);
-scene.add(brickHolder);
-
-//create borders:
-createBorders();
-
-var rows = 20;
-var brickMatrix = initializeMatrix(rows);
-let pad = createPad();
-let padCollision = createPadCollision();
-let ball = createBall();
-
-// Boolean flag to track whether the pointer is locked
-let isPointerLocked = false;
 
 // Listen for spacebar key press
 document.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
+    if(gameStatus != 3){
+      if(!isPointerLocked){
+        gameStatus = 2;
+      } else {
+        gameStatus = 1;
+      }
+    }
     togglePointerLock();
+  }
+
+  if(event.code == "r") {
+    reset();
+  }
+
+  if(event.code = "Enter"){
+    var element = document.querySelector("#webgl-output");
+    element.requestFullscreen();
   }
 });
 
@@ -78,12 +68,53 @@ playerControls.addEventListener("lock", () => {
 playerControls.addEventListener("unlock", () => {
   isPointerLocked = false;
 });
-var message = new SecondaryBox("");
 
+
+setup();
 
 render();
 
 /* ------------------ FUNCTIONS ------------------ */
+
+function setup(){
+  scene = new THREE.Scene(); // Create main scene
+  renderer = initRenderer(); // View function in util/utils
+  light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
+  keyboard = new KeyboardState();
+  ballVelocity = new THREE.Vector3(0.0, 0.03, 0);
+  dh = 0.33; //delta de
+
+  clock = new THREE.Clock();
+  tempoDecorrido = 0; 
+  // Main camera
+  camera = initializeCamera();
+  auxCamera = initializeCamera();
+  scene.background = new THREE.Color(0x00008b);
+  //window.addEventListener("mousemove", onMouseMove);
+  scene.add(camera);
+
+  playerControls = new PointerLockControls(auxCamera, renderer.domElement);
+
+  // Enable pointer lock when a user clicks on the canvas
+
+  collidableMeshList = [];
+  brickHolder = new THREE.Object3D();
+  brickHolder.position.set(-1, 2.2, 0);
+  scene.add(brickHolder);
+
+  //create borders:
+  createBorders();
+
+  rows = 20;
+  brickMatrix = initializeMatrix(rows);
+  pad = createPad();
+  padCollision = createPadCollision();
+  ball = createBall();
+
+  // Boolean flag to track whether the pointer is locked
+  isPointerLocked = false;
+  gameStatus = 1;
+}
 
 function Brick(obj, resistance) {
   this.obj = obj;
@@ -363,6 +394,7 @@ function updateBall(ballVelocity) {
         break;
       case 2:
         angle =  MathUtils.degToRad(90);
+        ballVelocity.x*=-1;
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
@@ -397,6 +429,13 @@ function updateBall(ballVelocity) {
   }
 }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
+
+    if(tbintersects[0]["object"].name == "down")
+    {
+      gameStatus = 3;
+      message.changeMessage("Você perdeu! Aperte R para reiniciar");
+    }
+
     ballVelocity.y *= -1;
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
@@ -409,9 +448,6 @@ function updateBall(ballVelocity) {
           }
         }
       }
-    } else if (tbintersects[0]["object"].name == "down") {
-      //console.log("sou tricolor de coração");
-    }
   }
 
   const lrraycaster = new THREE.Raycaster();
@@ -497,17 +533,30 @@ function newReflect(v,normal)
 
   return v.sub(v1.copy(normal).multiplyScalar(2 * v.dot(normal)));
 }
+
 function render() {
+  if(gameStatus == 2 || gameStatus == 3)
+    return;
+
   updateBall(ballVelocity);
   updateBallAngle();
   requestAnimationFrame(render);
   renderer.render(scene, camera); // Render scene
 }
 
+function reset() {
+  gameStatus = 0;
+  message.changeMessage("Espaço para pausar\nEnter para tela cheia\nR para reiniciar");
+  while(scene.children.length > 0){ 
+    scene.remove(scene.children[0]); 
+  }
+  setup();
+}
+
 function updateBallAngle(){
   var ang = Math.atan(ballVelocity.y / ballVelocity.x);
   ang = MathUtils.radToDeg(ang);
-  message.changeMessage("Ball angle: " + (ang));
+  //message.changeMessage("Ball angle: " + (ang));
 
 }
 
