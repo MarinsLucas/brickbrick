@@ -5,6 +5,7 @@ import KeyboardState from "../libs/util/KeyboardState.js";
 import {
   SecondaryBox,
   initDefaultSpotlight,
+  initDefaultBasicLight,
   initRenderer,
   setDefaultMaterial,
 } from "../libs/util/util.js";
@@ -21,11 +22,12 @@ let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausad
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
-light = initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
+light = initDefaultBasicLight(scene) //initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
+light.position.set(0,0,5)
+light.intensity =0.56789; 
 keyboard = new KeyboardState();
-var ballVelocity = new THREE.Vector3(0.0, 0.03, 0);
+var ballVelocity = new THREE.Vector3( 0.03 *  Math.cos(70),  0.03 *  Math.sin(70), 0);
 let dh = 0.33; //delta de
-
 const clock = new THREE.Clock();
 var tempoDecorrido = 0;
 // Main camera
@@ -54,7 +56,7 @@ scene.add(brickHolder);
 //create borders:
 createBorders();
 
-var rows = 20;
+var rows = 5;
 var brickMatrix = initializeMatrix(rows);
 let pad = createPad();
 let padCollision = createPadCollision();
@@ -65,16 +67,30 @@ let isPointerLocked = false;
 
 scene.add(camera);
 
+document.addEventListener("click", function (event) {
+  // Check if it's a left mouse click (button 0)
+  if (event.button === 0) {
+    // Handle the left mouse click here
+    console.log("Left mouse click detected!");
+    if((gameStatus == 3 || gameStatus ==0) && isPointerLocked)
+    {
+      gameStatus = 1; 
+    }
+    // You can perform your desired actions here
+  }
+}
+);
 // Listen for spacebar key press
 document.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
-    if (gameStatus != 3) {
+    if (gameStatus != 3 && gameStatus != 4) {
       if (isPointerLocked) {
         gameStatus = 2;
-      } else {
+      } else if(gameStatus !=0){
         gameStatus = 1;
       }
-    }
+      
+    } 
     togglePointerLock();
   }
 
@@ -104,8 +120,16 @@ render();
 
 function reset() {
   gameStatus = 1;
-  ball.position.set(0, -2, 0);
+  ball.position.set(0.12, -2, 0);
   pad.position.set(0, -2.1, 0);
+  ballVelocity.x =
+        0.03 *
+        Math.cos(70);
+      ballVelocity.y =
+        0.03 *
+        Math.sin(70);
+
+  gameStatus = 3; 
   resetBricks();
 }
 
@@ -115,12 +139,13 @@ function resetBricks() {
     for (let j = 0; j < brickMatrix[i].length; j++) {
       const brick = brickMatrix[i][j];
       const obj = brick.obj;
-      obj.position.set(1000, 1000, 1000); // Move the brick out of the scene
+      //obj.position.set(1000, 1000, 1000); // Move the brick out of the scene
+      removeBrick(obj.name); 
     }
   }
 
   // Recreate the brick matrix with initial resistance values and positions
-  let resistance = 1;
+  /* let resistance = 1;
   let id = 0;
   for (let i = 0; i < 7; i++) {
     for (let j = 0; j < rows; j++) {
@@ -136,7 +161,9 @@ function resetBricks() {
       id++;
       brickMatrix[i][j] = brick;
     }
-  }
+  } */
+
+  brickMatrix = initializeMatrix(rows);
 }
 
 function Brick(obj, resistance) {
@@ -163,7 +190,25 @@ function togglePointerLock() {
   }
 }
 
+function createCustomMatrix()
+{
+  let matrix = [];
+  let a = 1;
+  for(let i = 0; i<7; i++)
+  {
+    matrix[i] = [];
+    for(let j = 0; j < rows; j++)
+    {
+     matrix[i][j] = a;
+     a++;
+     if(a > 3) a = 1; 
+    }
+  }
+  return matrix;
+}
+
 function onMouseMoveLocked(event) {
+  if(gameStatus != 1) return; 
   // Calculate the horizontal movement based on mouse position
   const movementX =
     event.movementX || event.mozMovementX || event.webkitMovementX || 0;
@@ -187,17 +232,17 @@ function onMouseMoveLocked(event) {
 
 function createBall() {
   var geometry = new THREE.SphereGeometry(0.05, 64, 32);
-  var material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  var material = setDefaultMaterial({ color: 0xffffff });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
-  obj.position.set(0, -2, 0);
+  obj.position.set(0.12, -2, 0);
   scene.add(obj);
   return obj;
 }
 
 function createPad() {
   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-  let material = setDefaultMaterial("red");
+  let material = setDefaultMaterial("rgb(255,255,255)");
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, -2.1, 0);
@@ -209,11 +254,13 @@ function createPadCollision() {
   let padCollisionArray = [];
   for (let index = 0; index < 5; index++) {
     let geometry = new THREE.BoxGeometry(0.13, 0.1, 0.1);
+
+    //esse material não aparece, é apenas para fins de depuração! xD
     var material = new THREE.MeshStandardMaterial({
       // make it be a random color for each index
       color: Math.random() * 0xffffff,
       transparent: true, // Enable transparency
-      opacity: 1, // Set the opacity level (0: fully transparent, 1: fully opaque)
+      opacity: 0, // Set the opacity level (0: fully transparent, 1: fully opaque) 
     });
     material.side = THREE.DoubleSide;
     var obj = new THREE.Mesh(geometry, material);
@@ -230,17 +277,12 @@ function initializeMatrix(row) {
   const brickMatrix = new Array(7)
     .fill(null)
     .map(() => new Array(row).fill(null));
-
+  let resistances = createCustomMatrix();
   let resistance = 1;
   let a = 0;
   for (let i = 0; i < 7; i++) {
     for (let j = 0; j < row; j++) {
-      if (j == 0) {
-        resistance = 2;
-      } else {
-        resistance = 3;
-      }
-
+      resistance = resistances[i][j];
       brickMatrix[i][j] = createBrick(
         i * dh,
         -j * (dh / 2),
@@ -295,12 +337,24 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
   renderer.setSize(w, h);
 }
 
+function removeBrick(brickName) {
+  const brickIndex = collidableMeshList.findIndex((brick) => brick.name === brickName);
+
+  if (brickIndex !== -1) {
+    const removedBrick = collidableMeshList.splice(brickIndex, 1)[0]; 
+    brickHolder.remove(removedBrick);
+  }
+}
+
 function updateBrick(brick) {
   var obj = brick.obj;
 
   switch (brick.resistance) {
     case 0:
-      obj.position.set(1000, 1000, 1000);
+      //obj.position.set(1000, 1000, 1000);
+      removeBrick(obj.name);
+      if(brickHolder.children.length == 0) gameStatus = 4; 
+      break; 
     case 1:
       brick.color = "lightgreen";
       break;
@@ -439,6 +493,7 @@ function updateBall(ballVelocity) {
   }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
+    console.log(tbintersects[0]['object'])
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
       for (let i = 0; i < 7; i++) {
@@ -452,6 +507,14 @@ function updateBall(ballVelocity) {
       }
     } else if (tbintersects[0]["object"].name == "down") {
       gameStatus = 3;
+      ball.position.set(0.12, -2, 0);
+      pad.position.set(0, -2.1, 0);
+      ballVelocity.x =
+        0.03 *
+        Math.cos(70);
+      ballVelocity.y =
+        0.03 *
+        Math.sin(70);
     }
   }
 
@@ -546,7 +609,7 @@ function render() {
   updateBallAngle();
 
   if (gameStatus == 0) {
-    message.changeMessage("Press Space to start");
+    message.changeMessage("Press Space and then Left Click to start");
   }
 
   if (gameStatus == 1) {
@@ -558,7 +621,12 @@ function render() {
   }
 
   if (gameStatus == 3) {
-    message.changeMessage("You lost! Press R to restart");
+    message.changeMessage("Left click to continue!");
+  }
+
+  if(gameStatus == 4)
+  {
+    message.changeMessage("You've won!!! Press R to restart!");
   }
 
   requestAnimationFrame(render);
