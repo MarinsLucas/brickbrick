@@ -392,6 +392,7 @@ function updateBall(ballVelocity) {
         break;
       case 2:
         angle = MathUtils.degToRad(90);
+        ballVelocity.x*=-1; 
         //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
         /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
         ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
@@ -433,6 +434,8 @@ function updateBall(ballVelocity) {
         Math.sin(min_angle) *
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
+
+    if(ballVelocity.y < 0) ballVelocity.y  *=-1;
   }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
