@@ -10,12 +10,6 @@ import {
   setDefaultMaterial,
 } from "../libs/util/util.js";
 
-/* 
-TODO: Fazer a plataforma parar quando encostar na parede
-      Fazer a bola bater na plataforma
-      Fazer a bola bater nas paredes
-      Fazer a bola bater nos tijolos
-*/
 
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
 
@@ -41,19 +35,16 @@ window.addEventListener(
   },
   false
 );
-//window.addEventListener("mousemove", onMouseMove);
 scene.add(camera);
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
-// Enable pointer lock when a user clicks on the canvas
 
 let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
 brickHolder.position.set(-1, 2.2, 0);
 scene.add(brickHolder);
 
-//create borders:
 createBorders();
 
 var rows = 5;
@@ -143,26 +134,6 @@ function resetBricks() {
       removeBrick(obj.name); 
     }
   }
-
-  // Recreate the brick matrix with initial resistance values and positions
-  /* let resistance = 1;
-  let id = 0;
-  for (let i = 0; i < 7; i++) {
-    for (let j = 0; j < rows; j++) {
-      if (j == 0) {
-        resistance = 2;
-      } else {
-        resistance = 3;
-      }
-
-      const brick = createBrick(i * dh, -j * (dh / 2), resistance, brickHolder);
-      brick.obj.name = id;
-      brick.id = id;
-      id++;
-      brickMatrix[i][j] = brick;
-    }
-  } */
-
   brickMatrix = initializeMatrix(rows);
 }
 
@@ -190,22 +161,34 @@ function togglePointerLock() {
   }
 }
 
-function createCustomMatrix()
+function readMatrix(level)
 {
-  let matrix = [];
-  let a = 1;
-  for(let i = 0; i<7; i++)
-  {
-    matrix[i] = [];
-    for(let j = 0; j < rows; j++)
-    {
-     matrix[i][j] = a;
-     a++;
-     if(a > 3) a = 1; 
-    }
-  }
-  return matrix;
+  const fs = require('fs');
+  const csv = require('csv-parser');
+
+  const filePath = "T2/level" + level + ".csv"; // Substitua pelo caminho do seu arquivo CSV
+  const bricks = []; // Matriz para armazenar os tijolos do jogo (números inteiros)
+
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (data) => {
+      // Suponha que o CSV contenha apenas um número inteiro por linha
+      const brickValue = parseInt(data.value); // Converter o valor para um número inteiro
+      bricks.push(brickValue);
+    })
+    .on('end', () => {
+      console.log('Dados do CSV lidos com sucesso:');
+      console.log(bricks);
+
+      // Agora você pode usar a matriz 'bricks' para representar os tijolos no seu jogo.
+      // Cada elemento da matriz contém o valor do bloco.
+    })
+    .on('error', (err) => {
+      console.error('Erro ao ler o arquivo CSV:', err);
+    });
+    return bricks;
 }
+
 
 function onMouseMoveLocked(event) {
   if(gameStatus != 1) return; 
@@ -277,12 +260,12 @@ function initializeMatrix(row) {
   const brickMatrix = new Array(7)
     .fill(null)
     .map(() => new Array(row).fill(null));
-  let resistances = createCustomMatrix();
+  let resistances = readMatrix(0);
   let resistance = 1;
   let a = 0;
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 9; i++) {
     for (let j = 0; j < row; j++) {
-      resistance = resistances[i][j];
+      resistance = resistances[a];
       brickMatrix[i][j] = createBrick(
         i * dh,
         -j * (dh / 2),
@@ -431,7 +414,6 @@ function updateBall(ballVelocity) {
     clock.stop();
     clock.start();
 
-    //console.log(padintersects[0]["object"].name.typeof);
     let angle;
 
     switch (padintersects[0]["object"].name) {
@@ -447,25 +429,16 @@ function updateBall(ballVelocity) {
       case 2:
         angle = MathUtils.degToRad(90);
         ballVelocity.x*=-1; 
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
         console.log("2");
         break;
 
       case 3:
         angle = MathUtils.degToRad(-70);
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
         console.log("3");
         break;
 
       case 4:
         angle = MathUtils.degToRad(-60);
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
         console.log("4");
         break;
     }
@@ -474,7 +447,6 @@ function updateBall(ballVelocity) {
       ballVelocity,
       new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
     );
-    //ballVelocity.reflect(new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).normalize());
 
     var ang = Math.atan(ballVelocity.y / ballVelocity.x);
     var min_angle = MathUtils.degToRad(30);
@@ -518,7 +490,6 @@ function updateBall(ballVelocity) {
     }
   }
 
-  const lrraycaster = new THREE.Raycaster();
   const lrdirection = new THREE.Vector3(ballVelocity.x, 0, 0);
 
   tbraycaster.ray.origin.copy(ball.position);
@@ -553,7 +524,6 @@ function updateBall(ballVelocity) {
     tempoDecorrido = 0;
     clock.stop();
     clock.start();
-    //console.log(padintersects[0]["object"].name.typeof);
     let angle;
 
     switch (rlpadintersects[0]["object"].name) {
@@ -568,25 +538,16 @@ function updateBall(ballVelocity) {
         break;
       case 2:
         angle = MathUtils.degToRad(90);
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /* var theta = -2*ang + Math.PI - MathUtils.degToRad(90);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
         console.log("2");
         break;
 
       case 3:
         angle = MathUtils.degToRad(-70);
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(60);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
         console.log("3");
         break;
 
       case 4:
         angle = MathUtils.degToRad(-60);
-        //var theta = Math.PI - 2*(ang - MathUtils.degToRad(100));
-        /*         var theta = -2*ang + Math.PI - MathUtils.degToRad(30);
-        ballVelocity.x = ballVelocity.x*(Math.cos(theta-ang)) */
         console.log("4");
         break;
     }
@@ -595,7 +556,6 @@ function updateBall(ballVelocity) {
       ballVelocity,
       new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
     );
-    //ballVelocity.reflect(new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0).normalize());
   }
 }
 
