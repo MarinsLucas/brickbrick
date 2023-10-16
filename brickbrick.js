@@ -4,24 +4,28 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import KeyboardState from "../libs/util/KeyboardState.js";
 import {
   SecondaryBox,
-  initDefaultSpotlight,
   initDefaultBasicLight,
   initRenderer,
   setDefaultMaterial,
 } from "../libs/util/util.js";
 
-
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
+let level = 1;
+let rows = 0;
 
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
-light = initDefaultBasicLight(scene) //initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
-light.position.set(0,0,5)
-light.intensity =0.56789; 
+light = initDefaultBasicLight(scene); //initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
+light.position.set(0, 0, 5);
+light.intensity = 0.56789;
 keyboard = new KeyboardState();
-var ballVelocity = new THREE.Vector3( 0.03 *  Math.cos(70),  0.03 *  Math.sin(70), 0);
-let dh = 0.33; //delta de
+var ballVelocity = new THREE.Vector3(
+  0.03 * Math.cos(70),
+  0.03 * Math.sin(70),
+  0
+);
+let dh = 0.21; //delta de
 const clock = new THREE.Clock();
 var tempoDecorrido = 0;
 // Main camera
@@ -39,16 +43,14 @@ scene.add(camera);
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
-
 let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
-brickHolder.position.set(-1, 2.2, 0);
+brickHolder.position.set(-1.05, 2.2, 0);
 scene.add(brickHolder);
 
 createBorders();
 
-var rows = 5;
-var brickMatrix = initializeMatrix(rows);
+var brickMatrix = initializeMatrix();
 let pad = createPad();
 let padCollision = createPadCollision();
 let ball = createBall();
@@ -63,25 +65,22 @@ document.addEventListener("click", function (event) {
   if (event.button === 0) {
     // Handle the left mouse click here
     console.log("Left mouse click detected!");
-    if((gameStatus == 3 || gameStatus ==0) && isPointerLocked)
-    {
-      gameStatus = 1; 
+    if ((gameStatus == 3 || gameStatus == 0) && isPointerLocked) {
+      gameStatus = 1;
     }
     // You can perform your desired actions here
   }
-}
-);
+});
 // Listen for spacebar key press
 document.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     if (gameStatus != 3 && gameStatus != 4) {
       if (isPointerLocked) {
         gameStatus = 2;
-      } else if(gameStatus !=0){
+      } else if (gameStatus != 0) {
         gameStatus = 1;
       }
-      
-    } 
+    }
     togglePointerLock();
   }
 
@@ -113,14 +112,10 @@ function reset() {
   gameStatus = 1;
   ball.position.set(0.12, -2, 0);
   pad.position.set(0, -2.1, 0);
-  ballVelocity.x =
-        0.03 *
-        Math.cos(70);
-      ballVelocity.y =
-        0.03 *
-        Math.sin(70);
+  ballVelocity.x = 0.03 * Math.cos(70);
+  ballVelocity.y = 0.03 * Math.sin(70);
 
-  gameStatus = 3; 
+  gameStatus = 3;
   resetBricks();
 }
 
@@ -131,10 +126,10 @@ function resetBricks() {
       const brick = brickMatrix[i][j];
       const obj = brick.obj;
       //obj.position.set(1000, 1000, 1000); // Move the brick out of the scene
-      removeBrick(obj.name); 
+      removeBrick(obj.name);
     }
   }
-  brickMatrix = initializeMatrix(rows);
+  brickMatrix = initializeMatrix();
 }
 
 function Brick(obj, resistance) {
@@ -161,37 +156,26 @@ function togglePointerLock() {
   }
 }
 
-function readMatrix(level)
-{
-  const fs = require('fs');
-  const csv = require('csv-parser');
+function readMatrix(matrixString) {
+  const rows = matrixString.trim().split("\n");
+  const matrix = [];
 
-  const filePath = "T2/level" + level + ".csv"; // Substitua pelo caminho do seu arquivo CSV
-  const bricks = []; // Matriz para armazenar os tijolos do jogo (números inteiros)
+  for (const row of rows) {
+    const columns = row.split(",");
 
-  fs.createReadStream(filePath)
-    .pipe(csv())
-    .on('data', (data) => {
-      // Suponha que o CSV contenha apenas um número inteiro por linha
-      const brickValue = parseInt(data.value); // Converter o valor para um número inteiro
-      bricks.push(brickValue);
-    })
-    .on('end', () => {
-      console.log('Dados do CSV lidos com sucesso:');
-      console.log(bricks);
+    for (const column of columns) {
+      const brickValue = parseInt(column.trim());
+      if (!isNaN(brickValue)) {
+        matrix.push(brickValue);
+      }
+    }
+  }
 
-      // Agora você pode usar a matriz 'bricks' para representar os tijolos no seu jogo.
-      // Cada elemento da matriz contém o valor do bloco.
-    })
-    .on('error', (err) => {
-      console.error('Erro ao ler o arquivo CSV:', err);
-    });
-    return bricks;
+  return matrix;
 }
 
-
 function onMouseMoveLocked(event) {
-  if(gameStatus != 1) return; 
+  if (gameStatus != 1) return;
   // Calculate the horizontal movement based on mouse position
   const movementX =
     event.movementX || event.mozMovementX || event.webkitMovementX || 0;
@@ -243,7 +227,7 @@ function createPadCollision() {
       // make it be a random color for each index
       color: Math.random() * 0xffffff,
       transparent: true, // Enable transparency
-      opacity: 0, // Set the opacity level (0: fully transparent, 1: fully opaque) 
+      opacity: 0, // Set the opacity level (0: fully transparent, 1: fully opaque)
     });
     material.side = THREE.DoubleSide;
     var obj = new THREE.Mesh(geometry, material);
@@ -255,16 +239,40 @@ function createPadCollision() {
   return padCollisionArray;
 }
 
-function initializeMatrix(row) {
-  // Initialize a 2D matrix with null values
-  const brickMatrix = new Array(7)
+function chooseLevel(level) {
+  var matrixString = "";
+
+  if (level == 1) {
+    matrixString = `
+  6,1,2,3,4,5,6,1,2,3,4
+  5,6,1,2,3,4,5,6,1,2,3
+  4,5,6,1,2,3,4,5,6,1,2
+  3,4,5,6,1,2,3,4,5,6,1
+  2,3,4,5,6,1,2,3,4,5,6
+  1,2,3,4,5,6,1,2,3,4,5
+  `;
+  }
+
+  return matrixString;
+}
+
+function initializeMatrix() {
+  const matrixString = chooseLevel(level);
+
+  rows = matrixString.trim().split("\n").length;
+  let cols = matrixString.trim().split("\n")[0].split(",").length;
+
+  console.log(cols);
+
+  const brickMatrix = new Array(cols)
     .fill(null)
-    .map(() => new Array(row).fill(null));
-  let resistances = readMatrix(0);
+    .map(() => new Array(rows).fill(null));
+
+  let resistances = readMatrix(matrixString);
   let resistance = 1;
   let a = 0;
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < row; j++) {
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
       resistance = resistances[a];
       brickMatrix[i][j] = createBrick(
         i * dh,
@@ -321,10 +329,12 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
 }
 
 function removeBrick(brickName) {
-  const brickIndex = collidableMeshList.findIndex((brick) => brick.name === brickName);
+  const brickIndex = collidableMeshList.findIndex(
+    (brick) => brick.name === brickName
+  );
 
   if (brickIndex !== -1) {
-    const removedBrick = collidableMeshList.splice(brickIndex, 1)[0]; 
+    const removedBrick = collidableMeshList.splice(brickIndex, 1)[0];
     brickHolder.remove(removedBrick);
   }
 }
@@ -336,19 +346,25 @@ function updateBrick(brick) {
     case 0:
       //obj.position.set(1000, 1000, 1000);
       removeBrick(obj.name);
-      if(brickHolder.children.length == 0) gameStatus = 4; 
-      break; 
+      if (brickHolder.children.length == 0) gameStatus = 4;
+      break;
     case 1:
-      brick.color = "lightgreen";
+      brick.color = "red";
       break;
     case 2:
-      brick.color = "yellow";
+      brick.color = "blue";
       break;
     case 3:
       brick.color = "orange";
       break;
     case 4:
-      brick.color = "red";
+      brick.color = "pink";
+      break;
+    case 5:
+      brick.color = "lightgreen";
+      break;
+    case 6:
+      brick.color = "lightgrey";
       break;
   }
 
@@ -359,20 +375,26 @@ function updateBrick(brick) {
 
 function createBrick(x, y, resistance, brickHolder) {
   var obj, color;
-  var geometry = new THREE.BoxGeometry(0.3, 0.1, 1);
+  var geometry = new THREE.BoxGeometry(0.2, 0.1, 1);
 
   switch (resistance) {
     case 1:
-      color = "lightgreen";
+      color = "red";
       break;
     case 2:
-      color = "yellow";
+      color = "blue";
       break;
     case 3:
       color = "orange";
       break;
     case 4:
-      color = "red";
+      color = "pink";
+      break;
+    case 5:
+      color = "lightgreen";
+      break;
+    case 6:
+      color = "lightgrey";
       break;
   }
 
@@ -428,7 +450,7 @@ function updateBall(ballVelocity) {
         break;
       case 2:
         angle = MathUtils.degToRad(90);
-        ballVelocity.x*=-1; 
+        ballVelocity.x *= -1;
         console.log("2");
         break;
 
@@ -461,17 +483,19 @@ function updateBall(ballVelocity) {
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
 
-    if(ballVelocity.y < 0) ballVelocity.y  *=-1;
+    if (ballVelocity.y < 0) ballVelocity.y *= -1;
   }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
-    console.log(tbintersects[0]['object'])
+    console.log(tbintersects[0]["object"]);
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
       for (let i = 0; i < 7; i++) {
         for (let j = rows - 1; j >= 0; j--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
-            brickMatrix[i][j].resistance--;
+            if (brickMatrix[i][j].resistance == 6)
+              brickMatrix[i][j].resistance = 1;
+            else brickMatrix[i][j].resistance = 0;
             updateBrick(brickMatrix[i][j]);
             return;
           }
@@ -481,12 +505,8 @@ function updateBall(ballVelocity) {
       gameStatus = 3;
       ball.position.set(0.12, -2, 0);
       pad.position.set(0, -2.1, 0);
-      ballVelocity.x =
-        0.03 *
-        Math.cos(70);
-      ballVelocity.y =
-        0.03 *
-        Math.sin(70);
+      ballVelocity.x = 0.03 * Math.cos(70);
+      ballVelocity.y = 0.03 * Math.sin(70);
     }
   }
 
@@ -506,7 +526,9 @@ function updateBall(ballVelocity) {
       for (let i = 0; i < 7; i++) {
         for (let j = rows - 1; j >= 0; j--) {
           if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
-            brickMatrix[i][j].resistance--;
+            if (brickMatrix[i][j].resistance == 6)
+              brickMatrix[i][j].resistance = 1;
+            else brickMatrix[i][j].resistance = 0;
             updateBrick(brickMatrix[i][j]);
             return;
           }
@@ -584,8 +606,7 @@ function render() {
     message.changeMessage("Left click to continue!");
   }
 
-  if(gameStatus == 4)
-  {
+  if (gameStatus == 4) {
     message.changeMessage("You've won!!! Press R to restart!");
   }
 
