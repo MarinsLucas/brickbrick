@@ -16,9 +16,34 @@ let rows = 0;
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
-light = initDefaultBasicLight(scene); //initDefaultSpotlight(scene, new THREE.Vector3(5.0, 5.0, 5.0)); // Use default light
-light.position.set(0, 0, 5);
-light.intensity = 0.56789;
+light = new THREE.DirectionalLight(0xffffff, 0.6);
+light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
+light.position.set( 2,5,10);
+  
+// Shadow settings
+light.castShadow = true;
+light.shadow.mapSize.width = 2048;
+light.shadow.mapSize.height = 2048;
+light.shadow.camera.near = 1;
+light.shadow.camera.far = 20;
+light.shadow.camera.left = -5;
+light.shadow.camera.right = 5;
+light.shadow.camera.top = 5;
+light.shadow.camera.bottom = -5;
+light.shadowDarkness = 0.5;
+scene.add(light);
+
+scene.add(light.target);
+light.target.position.set(0,-5,0);
+
+let light2 = new THREE.DirectionalLight(0xffffff, 0.4)
+light2.castShadow = false;
+light2.position.set(0,0,10);
+scene.add(light2);
+scene.add(light2.target);
+light2.target.position.set(0,0,0);
+
+
 keyboard = new KeyboardState();
 var ballVelocity = new THREE.Vector3(
   0.03 * Math.cos(70),
@@ -40,6 +65,18 @@ window.addEventListener(
   false
 );
 scene.add(camera);
+
+
+scene.add(new THREE.CameraHelper(camera)) 
+
+//Criar plano de fundo (para as sombras baterem)
+const geometry = new THREE.PlaneGeometry( 10, 10 );
+const material2 = new THREE.MeshLambertMaterial( {color: "darkslateblue", side: THREE.DoubleSide} );
+const plane = new THREE.Mesh( geometry, material2 );
+plane.position.set(0,0,-0.05)
+plane.receiveShadow = true; 
+scene.add(plane);
+
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
@@ -199,20 +236,24 @@ function onMouseMoveLocked(event) {
 
 function createBall() {
   var geometry = new THREE.SphereGeometry(0.05, 64, 32);
-  var material = setDefaultMaterial({ color: 0xffffff });
+  var material = new THREE.MeshPhongMaterial({ color: 0xffffff });
   material.side = THREE.DoubleSide;
+  material.specular = 0xffffff;
+  material.shininess = 10;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0.12, -2, 0);
+  obj.castShadow = true; 
   scene.add(obj);
   return obj;
 }
 
 function createPad() {
   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-  let material = setDefaultMaterial("rgb(255,255,255)");
+  let material = new THREE.MeshLambertMaterial( {color: "rgb(255,255,255)", side: THREE.DoubleSide} );
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, -2.1, 0);
+  obj.castShadow = true; 
   scene.add(obj);
   return obj;
 }
@@ -224,10 +265,9 @@ function createPadCollision() {
 
     //esse material não aparece, é apenas para fins de depuração! xD
     var material = new THREE.MeshStandardMaterial({
-      // make it be a random color for each index
       color: Math.random() * 0xffffff,
-      transparent: true, // Enable transparency
-      opacity: 0, // Set the opacity level (0: fully transparent, 1: fully opaque)
+      transparent: true,
+      opacity: 0,
     });
     material.side = THREE.DoubleSide;
     var obj = new THREE.Mesh(geometry, material);
@@ -291,11 +331,14 @@ function initializeMatrix() {
 }
 
 function initializeCamera() {
-  let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
+  //let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
   let w = window.innerHeight / 2;
   let h = window.innerHeight;
+  let camera = new THREE.PerspectiveCamera(60, w/h, 0.01, 10); //fov, aspect, near, far
   let aspect = 0.5;
   let f = 5;
+  camera.position.set(0,0,4.3);
+  camera.lookAt(new THREE.Vector3(0,0,0));
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = aspect;
   }
@@ -305,7 +348,7 @@ function initializeCamera() {
     camera.top = f / 2;
     camera.bottom = -f / 2;
   }
-  camera.updateProjectionMatrix();
+  //camera.updateProjectionMatrix(); //?Isso faz o que? 
   renderer.setSize(w, h);
   return camera;
 }
@@ -375,7 +418,7 @@ function updateBrick(brick) {
 
 function createBrick(x, y, resistance, brickHolder) {
   var obj, color;
-  var geometry = new THREE.BoxGeometry(0.2, 0.1, 1);
+  var geometry = new THREE.BoxGeometry(0.2, 0.1, 0.1);
 
   switch (resistance) {
     case 1:
@@ -397,10 +440,10 @@ function createBrick(x, y, resistance, brickHolder) {
       color = "lightgrey";
       break;
   }
-
-  var material = setDefaultMaterial(color);
+  var material = new THREE.MeshLambertMaterial( {color: color, side: THREE.DoubleSide} );
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
+  obj.castShadow = true;
   obj.name = "brick";
   obj.position.set(x, y, 0);
   brickHolder.add(obj);
@@ -621,30 +664,32 @@ function updateBallAngle() {
 }
 
 function createBorders() {
-  let upBorder = new THREE.BoxGeometry(3, 0.1, 0.1);
-  let borderMaterial = setDefaultMaterial();
+  let upBorder = new THREE.BoxGeometry(3, 0.1, 0.2);
+  let borderMaterial = new THREE.MeshLambertMaterial( {color: "darkslateblue", side: THREE.DoubleSide} );
   borderMaterial.side = THREE.DoubleSide;
   let upb = new THREE.Mesh(upBorder, borderMaterial);
-  upb.position.set(0.0, 2.5, 0.0);
+  upb.castShadow = true;  upb.position.set(0.0, 2.5, 0.0);
   upb.name = "up";
   scene.add(upb);
   collidableMeshList.push(upb);
 
-  let leftBorder = new THREE.BoxGeometry(0.1, 10, 0.1);
+  let leftBorder = new THREE.BoxGeometry(0.1, 10, 0.2);
   let lb = new THREE.Mesh(leftBorder, borderMaterial);
+  lb.castShadow = true;
   lb.position.set(-1.25, 0.0, 0.0);
   lb.name = "left";
   scene.add(lb);
   collidableMeshList.push(lb);
 
-  let rightBorder = new THREE.BoxGeometry(0.1, 10, 0.1);
+  let rightBorder = new THREE.BoxGeometry(0.1, 10, 0.2);
   let rb = new THREE.Mesh(rightBorder, borderMaterial);
+  rb.castShadow 
   rb.position.set(1.25, 0.0, 0.0);
   rb.name = "right";
   scene.add(rb);
   collidableMeshList.push(rb);
 
-  let downBorder = new THREE.BoxGeometry(3, 0.1, 0.1);
+  let downBorder = new THREE.BoxGeometry(3, 0.1, 0.2);
   let db = new THREE.Mesh(downBorder, borderMaterial);
   db.position.set(0.0, -2.55, 0.0);
   db.name = "down";
