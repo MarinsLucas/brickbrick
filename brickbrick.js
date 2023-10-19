@@ -10,7 +10,7 @@ import {
 } from "../libs/util/util.js";
 
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
-let level = 1;
+let level = 2;
 let rows = 0;
 
 let scene, renderer, light, keyboard;
@@ -64,7 +64,7 @@ document.addEventListener("click", function (event) {
   // Check if it's a left mouse click (button 0)
   if (event.button === 0) {
     // Handle the left mouse click here
-    console.log("Left mouse click detected!");
+    //console.log("Left mouse click detected!");
     if ((gameStatus == 3 || gameStatus == 0) && isPointerLocked) {
       gameStatus = 1;
     }
@@ -132,10 +132,10 @@ function resetBricks() {
   brickMatrix = initializeMatrix();
 }
 
-function Brick(obj, resistance) {
+function Brick(obj, resistance, color) {
   this.obj = obj;
   this.resistance = resistance;
-  this.color = "lightgreen";
+  this.color = color;
   this.id = 0;
 }
 
@@ -244,13 +244,27 @@ function chooseLevel(level) {
 
   if (level == 1) {
     matrixString = `
-  6,1,2,3,4,5,6,1,2,3,4
-  5,6,1,2,3,4,5,6,1,2,3
-  4,5,6,1,2,3,4,5,6,1,2
-  3,4,5,6,1,2,3,4,5,6,1
-  2,3,4,5,6,1,2,3,4,5,6
-  1,2,3,4,5,6,1,2,3,4,5
-  `;
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    `;
+  } else if (level == 2) {
+    matrixString = `
+    6,2,5,3,1,4,5,3,6,2,5,3,1,4
+    3,5,4,1,3,5,2,6,3,5,4,1,3,5
+    5,3,1,4,5,3,6,1,5,3,1,4,5,3
+    4,1,3,5,2,6,3,5,4,1,3,5,2,6
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    1
+    `;
   }
 
   return matrixString;
@@ -262,17 +276,15 @@ function initializeMatrix() {
   rows = matrixString.trim().split("\n").length;
   let cols = matrixString.trim().split("\n")[0].split(",").length;
 
-  console.log(cols);
-
-  const brickMatrix = new Array(cols)
+  const brickMatrix = new Array(rows)
     .fill(null)
-    .map(() => new Array(rows).fill(null));
+    .map(() => new Array(cols).fill(null));
 
   let resistances = readMatrix(matrixString);
   let resistance = 1;
   let a = 0;
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
       resistance = resistances[a];
       brickMatrix[i][j] = createBrick(
         i * dh,
@@ -283,6 +295,7 @@ function initializeMatrix() {
 
       brickMatrix[i][j].obj.name = a;
       brickMatrix[i][j].id = a;
+
       a++;
     }
   }
@@ -358,7 +371,7 @@ function updateBrick(brick) {
       brick.color = "orange";
       break;
     case 4:
-      brick.color = "pink";
+      brick.color = "hotpink";
       break;
     case 5:
       brick.color = "lightgreen";
@@ -388,7 +401,7 @@ function createBrick(x, y, resistance, brickHolder) {
       color = "orange";
       break;
     case 4:
-      color = "pink";
+      color = "hotpink";
       break;
     case 5:
       color = "lightgreen";
@@ -405,7 +418,8 @@ function createBrick(x, y, resistance, brickHolder) {
   obj.position.set(x, y, 0);
   brickHolder.add(obj);
   collidableMeshList.push(obj);
-  const brick = new Brick(obj, resistance);
+  const brick = new Brick(obj, resistance, color);
+
   return brick;
 }
 
@@ -444,24 +458,24 @@ function updateBall(ballVelocity) {
         break;
 
       case 1:
-        console.log("1");
+        //console.log("1");
         angle = MathUtils.degToRad(70);
 
         break;
       case 2:
         angle = MathUtils.degToRad(90);
         ballVelocity.x *= -1;
-        console.log("2");
+        //console.log("2");
         break;
 
       case 3:
         angle = MathUtils.degToRad(-70);
-        console.log("3");
+        //console.log("3");
         break;
 
       case 4:
         angle = MathUtils.degToRad(-60);
-        console.log("4");
+        //console.log("4");
         break;
     }
 
@@ -487,11 +501,10 @@ function updateBall(ballVelocity) {
   }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
-    console.log(tbintersects[0]["object"]);
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
-      for (let i = 0; i < 7; i++) {
-        for (let j = rows - 1; j >= 0; j--) {
+      for (let j = 0; j < 7; j++) {
+        for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
               brickMatrix[i][j].resistance = 1;
@@ -523,8 +536,8 @@ function updateBall(ballVelocity) {
 
     if (rlintersects[0]["object"].parent == brickHolder) {
       var id = rlintersects[0]["object"].name.parseInt;
-      for (let i = 0; i < 7; i++) {
-        for (let j = rows - 1; j >= 0; j--) {
+      for (let j = 0; j < 7; j++) {
+        for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
               brickMatrix[i][j].resistance = 1;
@@ -554,23 +567,23 @@ function updateBall(ballVelocity) {
         break;
 
       case 1:
-        console.log("1");
+        //console.log("1");
         angle = MathUtils.degToRad(70);
 
         break;
       case 2:
         angle = MathUtils.degToRad(90);
-        console.log("2");
+        //console.log("2");
         break;
 
       case 3:
         angle = MathUtils.degToRad(-70);
-        console.log("3");
+        //console.log("3");
         break;
 
       case 4:
         angle = MathUtils.degToRad(-60);
-        console.log("4");
+        //console.log("4");
         break;
     }
 
