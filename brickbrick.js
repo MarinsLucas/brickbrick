@@ -16,9 +16,9 @@ let rows = 0;
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
-light = new THREE.DirectionalLight(0xffffff, 0.6);
+light = new THREE.DirectionalLight(0xffffff,0.7);
 light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
-light.position.set( 2,5,10);
+light.position.set( 2, 5, 10);
   
 // Shadow settings
 light.castShadow = true;
@@ -34,14 +34,11 @@ light.shadowDarkness = 0.5;
 scene.add(light);
 
 scene.add(light.target);
-light.target.position.set(0,-5,0);
+light.target.position.set(0,-2,0);
 
-let light2 = new THREE.DirectionalLight(0xffffff, 0.4)
-light2.castShadow = false;
-light2.position.set(0,0,10);
+let light2 = new THREE.AmbientLight(0xffffff, 0.3)
 scene.add(light2);
-scene.add(light2.target);
-light2.target.position.set(0,0,0);
+
 
 
 keyboard = new KeyboardState();
@@ -91,7 +88,6 @@ var brickMatrix = initializeMatrix();
 let pad = createPad();
 let padCollision = createPadCollision();
 let ball = createBall();
-
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
 
@@ -236,20 +232,21 @@ function onMouseMoveLocked(event) {
 
 function createBall() {
   var geometry = new THREE.SphereGeometry(0.05, 64, 32);
-  var material = new THREE.MeshPhongMaterial({ color: 0xffffff });
-  material.side = THREE.DoubleSide;
-  material.specular = 0xffffff;
-  material.shininess = 10;
+  var material = new THREE.MeshPhongMaterial({color:"rgb(255,255,255)", shininess:"0.001", specular:"rgb(255,255,255)", emissive:"rbg(255,255,255)", emissiveIntensity: "1.0"});
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0.12, -2, 0);
   obj.castShadow = true; 
+
+  var light = new THREE.PointLight( 0xffffff, 1, 1);
+  light.position.set(0,0,0);
+  obj.add(light);
   scene.add(obj);
   return obj;
 }
 
 function createPad() {
   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-  let material = new THREE.MeshLambertMaterial( {color: "rgb(255,255,255)", side: THREE.DoubleSide} );
+  let material = new THREE.MeshLambertMaterial( {color: "lightblue", side: THREE.DoubleSide} );
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, -2.1, 0);
