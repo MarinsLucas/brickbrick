@@ -2,24 +2,21 @@ import * as THREE from "three";
 import { MathUtils } from "three";
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
-import {
-  SecondaryBox,
-  initDefaultBasicLight,
-  initRenderer,
-  setDefaultMaterial,
-} from "../libs/util/util.js";
+import { SecondaryBox, initRenderer } from "../libs/util/util.js";
 
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
 let level = 1;
+let balls = 0;
 let rows = 0;
+let cols = 0;
 
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
 light = new THREE.DirectionalLight(0xffffff, 0.6);
 light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
-light.position.set( 2,5,10);
-  
+light.position.set(2, 5, 10);
+
 // Shadow settings
 light.castShadow = true;
 light.shadow.mapSize.width = 2048;
@@ -34,15 +31,14 @@ light.shadowDarkness = 0.5;
 scene.add(light);
 
 scene.add(light.target);
-light.target.position.set(0,-5,0);
+light.target.position.set(0, -5, 0);
 
-let light2 = new THREE.DirectionalLight(0xffffff, 0.4)
+let light2 = new THREE.DirectionalLight(0xffffff, 0.4);
 light2.castShadow = false;
-light2.position.set(0,0,10);
+light2.position.set(0, 0, 10);
 scene.add(light2);
 scene.add(light2.target);
-light2.target.position.set(0,0,0);
-
+light2.target.position.set(0, 0, 0);
 
 keyboard = new KeyboardState();
 var ballVelocity = new THREE.Vector3(
@@ -66,23 +62,28 @@ window.addEventListener(
 );
 scene.add(camera);
 
-
-scene.add(new THREE.CameraHelper(camera)) 
+scene.add(new THREE.CameraHelper(camera));
 
 //Criar plano de fundo (para as sombras baterem)
-const geometry = new THREE.PlaneGeometry( 10, 10 );
-const material2 = new THREE.MeshLambertMaterial( {color: "darkslateblue", side: THREE.DoubleSide} );
-const plane = new THREE.Mesh( geometry, material2 );
-plane.position.set(0,0,-0.05)
-plane.receiveShadow = true; 
+const geometry = new THREE.PlaneGeometry(10, 10);
+const material2 = new THREE.MeshLambertMaterial({
+  color: "darkslateblue",
+  side: THREE.DoubleSide,
+});
+const plane = new THREE.Mesh(geometry, material2);
+plane.position.set(0, 0, -0.05);
+plane.receiveShadow = true;
 scene.add(plane);
-
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
 let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
-brickHolder.position.set(-1.05, 2.2, 0);
+let brickHolderX;
+
+if (level == 1) brickHolderX = -1.05;
+if (level == 2) brickHolderX = -0.95;
+brickHolder.position.set(brickHolderX, 2.2, 0);
 scene.add(brickHolder);
 
 createBorders();
@@ -90,7 +91,7 @@ createBorders();
 var brickMatrix = initializeMatrix();
 let pad = createPad();
 let padCollision = createPadCollision();
-let ball = createBall();
+let ball = createBall(0.12, -2);
 
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
@@ -108,7 +109,7 @@ document.addEventListener("click", function (event) {
     // You can perform your desired actions here
   }
 });
-// Listen for spacebar key press
+
 document.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     if (gameStatus != 3 && gameStatus != 4) {
@@ -123,6 +124,18 @@ document.addEventListener("keydown", (event) => {
 
   if (event.code == "KeyR") {
     if (gameStatus != 0) reset();
+  }
+
+  if (event.code == "KeyG") {
+    if (level == 1) {
+      level = 2;
+      brickHolderX = -0.95;
+    } else {
+      level = 1;
+      brickHolderX = -1.05;
+    }
+    brickHolder.position.set(brickHolderX, 2.2, 0);
+    reset();
   }
 
   if (event.code == "Enter") {
@@ -169,10 +182,10 @@ function resetBricks() {
   brickMatrix = initializeMatrix();
 }
 
-function Brick(obj, resistance) {
+function Brick(obj, resistance, color) {
   this.obj = obj;
   this.resistance = resistance;
-  this.color = "lightgreen";
+  this.color = color;
   this.id = 0;
 }
 
@@ -234,26 +247,36 @@ function onMouseMoveLocked(event) {
   pad.position.setX(clampedX);
 }
 
-function createBall() {
+function createBall(x, y) {
   var geometry = new THREE.SphereGeometry(0.05, 64, 32);
-  var material = new THREE.MeshPhongMaterial({ color: 0xffffff });
-  material.side = THREE.DoubleSide;
-  material.specular = 0xffffff;
-  material.shininess = 10;
+  var material = new THREE.MeshPhongMaterial({
+    color: "rgb(255,255,255)",
+    shininess: "0.001",
+    specular: "rgb(255,255,255)",
+    emissive: "rbg(255,255,255)",
+    emissiveIntensity: "1.0",
+  });
   var obj = new THREE.Mesh(geometry, material);
-  obj.position.set(0.12, -2, 0);
-  obj.castShadow = true; 
+  obj.position.set(x, y, 0);
+  obj.castShadow = true;
+
+  var light = new THREE.PointLight(0xffffff, 1, 1);
+  light.position.set(0, 0, 0);
+  obj.add(light);
   scene.add(obj);
   return obj;
 }
 
 function createPad() {
   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-  let material = new THREE.MeshLambertMaterial( {color: "rgb(255,255,255)", side: THREE.DoubleSide} );
+  let material = new THREE.MeshLambertMaterial({
+    color: "rgb(255,255,255)",
+    side: THREE.DoubleSide,
+  });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, -2.1, 0);
-  obj.castShadow = true; 
+  obj.castShadow = true;
   scene.add(obj);
   return obj;
 }
@@ -284,13 +307,31 @@ function chooseLevel(level) {
 
   if (level == 1) {
     matrixString = `
-  6,1,2,3,4,5,6,1,2,3,4
-  5,6,1,2,3,4,5,6,1,2,3
-  4,5,6,1,2,3,4,5,6,1,2
-  3,4,5,6,1,2,3,4,5,6,1
-  2,3,4,5,6,1,2,3,4,5,6
-  1,2,3,4,5,6,1,2,3,4,5
-  `;
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    6,1,2,3,4,5
+    `;
+  } else if (level == 2) {
+    matrixString = `
+    6,2,5,3,1,4,5,3,6,2,5,3,1,4
+    3,5,4,1,3,5,2,6,3,5,4,1,3,5
+    5,3,1,4,5,3,6,1,5,3,1,4,5,3
+    4,1,3,5,2,6,3,5,4,1,3,5,2,6
+    7,7,7,7,7,7,7,7,7,7,7,7,7,7
+    7,7,7,7,7,7,7,7,7,7,7,7,7,7
+    3,5,2,6,3,5,4,1,3,5,2,6,3,5
+    5,3,6,2,5,3,1,4,5,3,6,2,5,3
+    2,6,3,5,4,1,3,5,2,6,3,5,4,1
+    6,2,5,3,1,4,5,3,6,2,5,3,1,4
+    `;
   }
 
   return matrixString;
@@ -300,19 +341,17 @@ function initializeMatrix() {
   const matrixString = chooseLevel(level);
 
   rows = matrixString.trim().split("\n").length;
-  let cols = matrixString.trim().split("\n")[0].split(",").length;
+  cols = matrixString.trim().split("\n")[0].split(",").length;
 
-  console.log(cols);
-
-  const brickMatrix = new Array(cols)
+  const brickMatrix = new Array(rows)
     .fill(null)
-    .map(() => new Array(rows).fill(null));
+    .map(() => new Array(cols).fill(null));
 
   let resistances = readMatrix(matrixString);
   let resistance = 1;
   let a = 0;
-  for (let i = 0; i < cols; i++) {
-    for (let j = 0; j < rows; j++) {
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
       resistance = resistances[a];
       brickMatrix[i][j] = createBrick(
         i * dh,
@@ -323,6 +362,10 @@ function initializeMatrix() {
 
       brickMatrix[i][j].obj.name = a;
       brickMatrix[i][j].id = a;
+
+      if (brickMatrix[i][j].resistance == 7)
+        removeBrick(brickMatrix[i][j].obj.name);
+
       a++;
     }
   }
@@ -334,11 +377,11 @@ function initializeCamera() {
   //let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
   let w = window.innerHeight / 2;
   let h = window.innerHeight;
-  let camera = new THREE.PerspectiveCamera(60, w/h, 0.01, 10); //fov, aspect, near, far
+  let camera = new THREE.PerspectiveCamera(60, w / h, 0.01, 10); //fov, aspect, near, far
   let aspect = 0.5;
   let f = 5;
-  camera.position.set(0,0,4.3);
-  camera.lookAt(new THREE.Vector3(0,0,0));
+  camera.position.set(0, 0, 4.3);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = aspect;
   }
@@ -348,7 +391,7 @@ function initializeCamera() {
     camera.top = f / 2;
     camera.bottom = -f / 2;
   }
-  //camera.updateProjectionMatrix(); //?Isso faz o que? 
+  //camera.updateProjectionMatrix(); //?Isso faz o que?
   renderer.setSize(w, h);
   return camera;
 }
@@ -401,7 +444,7 @@ function updateBrick(brick) {
       brick.color = "orange";
       break;
     case 4:
-      brick.color = "pink";
+      brick.color = "hotpink";
       break;
     case 5:
       brick.color = "lightgreen";
@@ -431,7 +474,7 @@ function createBrick(x, y, resistance, brickHolder) {
       color = "orange";
       break;
     case 4:
-      color = "pink";
+      color = "hotpink";
       break;
     case 5:
       color = "lightgreen";
@@ -439,8 +482,14 @@ function createBrick(x, y, resistance, brickHolder) {
     case 6:
       color = "lightgrey";
       break;
+    case 7:
+      color = "white";
+      break;
   }
-  var material = new THREE.MeshLambertMaterial( {color: color, side: THREE.DoubleSide} );
+  var material = new THREE.MeshLambertMaterial({
+    color: color,
+    side: THREE.DoubleSide,
+  });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.castShadow = true;
@@ -448,7 +497,7 @@ function createBrick(x, y, resistance, brickHolder) {
   obj.position.set(x, y, 0);
   brickHolder.add(obj);
   collidableMeshList.push(obj);
-  const brick = new Brick(obj, resistance);
+  const brick = new Brick(obj, resistance, color);
   return brick;
 }
 
@@ -487,24 +536,24 @@ function updateBall(ballVelocity) {
         break;
 
       case 1:
-        console.log("1");
+        //console.log("1");
         angle = MathUtils.degToRad(70);
 
         break;
       case 2:
         angle = MathUtils.degToRad(90);
         ballVelocity.x *= -1;
-        console.log("2");
+        //console.log("2");
         break;
 
       case 3:
         angle = MathUtils.degToRad(-70);
-        console.log("3");
+        //console.log("3");
         break;
 
       case 4:
         angle = MathUtils.degToRad(-60);
-        console.log("4");
+        //console.log("4");
         break;
     }
 
@@ -530,11 +579,10 @@ function updateBall(ballVelocity) {
   }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
-    console.log(tbintersects[0]["object"]);
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
-      for (let i = 0; i < 7; i++) {
-        for (let j = rows - 1; j >= 0; j--) {
+      for (let j = 0; j < cols; j++) {
+        for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
               brickMatrix[i][j].resistance = 1;
@@ -566,8 +614,8 @@ function updateBall(ballVelocity) {
 
     if (rlintersects[0]["object"].parent == brickHolder) {
       var id = rlintersects[0]["object"].name.parseInt;
-      for (let i = 0; i < 7; i++) {
-        for (let j = rows - 1; j >= 0; j--) {
+      for (let j = 0; j < cols; j++) {
+        for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
               brickMatrix[i][j].resistance = 1;
@@ -597,23 +645,23 @@ function updateBall(ballVelocity) {
         break;
 
       case 1:
-        console.log("1");
+        //console.log("1");
         angle = MathUtils.degToRad(70);
 
         break;
       case 2:
         angle = MathUtils.degToRad(90);
-        console.log("2");
+        //console.log("2");
         break;
 
       case 3:
         angle = MathUtils.degToRad(-70);
-        console.log("3");
+        //console.log("3");
         break;
 
       case 4:
         angle = MathUtils.degToRad(-60);
-        console.log("4");
+        //console.log("4");
         break;
     }
 
@@ -665,10 +713,14 @@ function updateBallAngle() {
 
 function createBorders() {
   let upBorder = new THREE.BoxGeometry(3, 0.1, 0.2);
-  let borderMaterial = new THREE.MeshLambertMaterial( {color: "darkslateblue", side: THREE.DoubleSide} );
+  let borderMaterial = new THREE.MeshLambertMaterial({
+    color: "darkslateblue",
+    side: THREE.DoubleSide,
+  });
   borderMaterial.side = THREE.DoubleSide;
   let upb = new THREE.Mesh(upBorder, borderMaterial);
-  upb.castShadow = true;  upb.position.set(0.0, 2.5, 0.0);
+  upb.castShadow = true;
+  upb.position.set(0.0, 2.5, 0.0);
   upb.name = "up";
   scene.add(upb);
   collidableMeshList.push(upb);
@@ -683,7 +735,7 @@ function createBorders() {
 
   let rightBorder = new THREE.BoxGeometry(0.1, 10, 0.2);
   let rb = new THREE.Mesh(rightBorder, borderMaterial);
-  rb.castShadow 
+  rb.castShadow;
   rb.position.set(1.25, 0.0, 0.0);
   rb.name = "right";
   scene.add(rb);
