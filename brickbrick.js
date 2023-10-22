@@ -10,8 +10,12 @@ import {
 } from "../libs/util/util.js";
 
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
-let level = 2;
+let brokenBlocks = 0;
+let powerUpFlag = false;
+let level = 1;
+let balls = 0;
 let rows = 0;
+let cols = 0;
 
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
@@ -45,15 +49,26 @@ const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
 let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
-brickHolder.position.set(-1.05, 2.2, 0);
+let brickHolderX;
+
+if (level == 1) brickHolderX = -1.05;
+if (level == 2) brickHolderX = -0.95;
+brickHolder.position.set(brickHolderX, 2.2, 0);
 scene.add(brickHolder);
+
+/* let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
+let material = setDefaultMaterial("rgb(255,255,255)");
+material.side = THREE.DoubleSide;
+var obj = new THREE.Mesh(geometry, material);
+obj.position.set(-1.05, 2.2, 0);
+scene.add(obj); */
 
 createBorders();
 
 var brickMatrix = initializeMatrix();
 let pad = createPad();
 let padCollision = createPadCollision();
-let ball = createBall();
+let ball = createBall(0.12, -2);
 
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
@@ -86,6 +101,18 @@ document.addEventListener("keydown", (event) => {
 
   if (event.code == "KeyR") {
     if (gameStatus != 0) reset();
+  }
+
+  if (event.code == "KeyG") {
+    if (level == 1) {
+      level = 2;
+      brickHolderX = -0.95;
+    } else {
+      level = 1;
+      brickHolderX = -1.05;
+    }
+    brickHolder.position.set(brickHolderX, 2.2, 0);
+    reset();
   }
 
   if (event.code == "Enter") {
@@ -197,7 +224,8 @@ function onMouseMoveLocked(event) {
   pad.position.setX(clampedX);
 }
 
-function createBall() {
+function createBall(x, y) {
+  balls++;
   var geometry = new THREE.SphereGeometry(0.05, 64, 32);
   var material = setDefaultMaterial({ color: 0xffffff });
   material.side = THREE.DoubleSide;
@@ -262,8 +290,12 @@ function chooseLevel(level) {
     3,5,4,1,3,5,2,6,3,5,4,1,3,5
     5,3,1,4,5,3,6,1,5,3,1,4,5,3
     4,1,3,5,2,6,3,5,4,1,3,5,2,6
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0
-    1
+    7,7,7,7,7,7,7,7,7,7,7,7,7,7
+    7,7,7,7,7,7,7,7,7,7,7,7,7,7
+    3,5,2,6,3,5,4,1,3,5,2,6,3,5
+    5,3,6,2,5,3,1,4,5,3,6,2,5,3
+    2,6,3,5,4,1,3,5,2,6,3,5,4,1
+    6,2,5,3,1,4,5,3,6,2,5,3,1,4
     `;
   }
 
@@ -274,7 +306,7 @@ function initializeMatrix() {
   const matrixString = chooseLevel(level);
 
   rows = matrixString.trim().split("\n").length;
-  let cols = matrixString.trim().split("\n")[0].split(",").length;
+  cols = matrixString.trim().split("\n")[0].split(",").length;
 
   const brickMatrix = new Array(rows)
     .fill(null)
@@ -295,6 +327,9 @@ function initializeMatrix() {
 
       brickMatrix[i][j].obj.name = a;
       brickMatrix[i][j].id = a;
+
+      if (brickMatrix[i][j].resistance == 7)
+        removeBrick(brickMatrix[i][j].obj.name);
 
       a++;
     }
@@ -352,12 +387,35 @@ function removeBrick(brickName) {
   }
 }
 
+function powerUp() {
+  let x = ball.obj.position.x + 0.1;
+  let y = ball.obj.position.y;
+  createBall(x, y);
+
+  // new ball velocity must be the same as the original ball, but with 10 degrees of difference
+  let angle = Math.atan(ballVelocity.y / ballVelocity.x);
+  angle = MathUtils.radToDeg(angle);
+  angle += 10;
+
+  let newBallVelocity = new THREE.Vector3(
+    0.03 * Math.cos(angle),
+    0.03 * Math.sin(angle),
+    0
+  );
+
+  powerUpFlag = true;
+}
+
 function updateBrick(brick) {
   var obj = brick.obj;
 
   switch (brick.resistance) {
     case 0:
       //obj.position.set(1000, 1000, 1000);
+      brokenBlocks++;
+      if (brokenBlocks % 10 == 0 && balls == 1) {
+        powerUp();
+      }
       removeBrick(obj.name);
       if (brickHolder.children.length == 0) gameStatus = 4;
       break;
@@ -409,6 +467,8 @@ function createBrick(x, y, resistance, brickHolder) {
     case 6:
       color = "lightgrey";
       break;
+    case 7:
+      color = "white";
   }
 
   var material = setDefaultMaterial(color);
@@ -503,7 +563,7 @@ function updateBall(ballVelocity) {
     ballVelocity.y *= -1;
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
-      for (let j = 0; j < 7; j++) {
+      for (let j = 0; j < cols; j++) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
@@ -515,6 +575,13 @@ function updateBall(ballVelocity) {
         }
       }
     } else if (tbintersects[0]["object"].name == "down") {
+      if (powerUpFlag) {
+        powerUpFlag = false;
+        balls--;
+
+        return;
+      }
+
       gameStatus = 3;
       ball.position.set(0.12, -2, 0);
       pad.position.set(0, -2.1, 0);
@@ -536,7 +603,7 @@ function updateBall(ballVelocity) {
 
     if (rlintersects[0]["object"].parent == brickHolder) {
       var id = rlintersects[0]["object"].name.parseInt;
-      for (let j = 0; j < 7; j++) {
+      for (let j = 0; j < cols; j++) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
