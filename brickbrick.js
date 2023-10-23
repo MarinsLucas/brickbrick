@@ -13,10 +13,10 @@ let cols = 0;
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
-light = new THREE.DirectionalLight(0xffffff, 0.6);
+light = new THREE.DirectionalLight(0xffffff,0.7);
 light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
-light.position.set(2, 5, 10);
-
+light.position.set( 2, 5, 10);
+  
 // Shadow settings
 light.castShadow = true;
 light.shadow.mapSize.width = 2048;
@@ -31,14 +31,12 @@ light.shadowDarkness = 0.5;
 scene.add(light);
 
 scene.add(light.target);
-light.target.position.set(0, -5, 0);
+light.target.position.set(0,-2,0);
 
-let light2 = new THREE.DirectionalLight(0xffffff, 0.4);
-light2.castShadow = false;
-light2.position.set(0, 0, 10);
+let light2 = new THREE.AmbientLight(0xffffff, 0.3)
 scene.add(light2);
-scene.add(light2.target);
-light2.target.position.set(0, 0, 0);
+
+
 
 keyboard = new KeyboardState();
 var ballVelocity = new THREE.Vector3(
@@ -90,6 +88,8 @@ createBorders();
 
 var brickMatrix = initializeMatrix();
 let pad = createPad();
+collidableMeshList.push(pad);
+// let padCollision = createPadCollision();
 let padCollision = createPadCollision();
 let ball = createBall(pad.position.x, pad.position.y + 0.1);
 
@@ -268,19 +268,17 @@ function createBall(x, y) {
 
 function createPad() {
   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-  let material = new THREE.MeshLambertMaterial({
-    color: "rgb(255,255,255)",
-    side: THREE.DoubleSide,
-  });
+  let material = new THREE.MeshLambertMaterial( {color: "lightblue", side: THREE.DoubleSide} );
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, -2.1, 0);
-  obj.castShadow = true;
+  obj.castShadow = true; 
+  obj.name = "Pad";
   scene.add(obj);
   return obj;
 }
 
-function createPadCollision() {
+/* function createPadCollision() {
   let padCollisionArray = [];
   for (let index = 0; index < 5; index++) {
     let geometry = new THREE.BoxGeometry(0.13, 0.1, 0.1);
@@ -299,7 +297,7 @@ function createPadCollision() {
     padCollisionArray.push(obj);
   }
   return padCollisionArray;
-}
+} */
 
 function chooseLevel(level) {
   var matrixString = "";
@@ -503,24 +501,23 @@ function createBrick(x, y, resistance, brickHolder) {
 function updateBall(ballVelocity) {
   if (gameStatus != 1) return;
 
-  //console.log(tempoDecorrido)
+  console.log(tempoDecorrido)
   tempoDecorrido = clock.getElapsedTime();
   ball.translateX(ballVelocity.x);
   ball.translateY(ballVelocity.y);
 
   const tbraycaster = new THREE.Raycaster();
-  const tbdirection = new THREE.Vector3(0, ballVelocity.y, 0);
+  const tbdirection = new THREE.Vector3(0, ballVelocity.y*2 , 0);
 
   tbraycaster.ray.origin.copy(ball.position);
   tbraycaster.ray.direction.copy(tbdirection);
 
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
-  const padintersects = tbraycaster.intersectObjects(padCollision);
-
   if (
-    padintersects.length > 0 &&
-    padintersects[0].distance <= 0.07 &&
-    tempoDecorrido > 0.001
+    tbintersects.length > 0 && 
+    tbintersects[0].distance <= 0.05 &&
+    tempoDecorrido > 0.5 &&
+    tbintersects[0]["object"].name == "Pad"
   ) {
     ballVelocity.y *= -1;
     tempoDecorrido = 0;
@@ -528,32 +525,17 @@ function updateBall(ballVelocity) {
     clock.start();
 
     let angle;
+    var distance = (1+pad.position.x) - (1 + ball.position.x); 
+    //Distance pode variar de -0.30 até 0.30
+    if(distance < 0)
+    {
+      angle = MathUtils.degToRad(-90 - distance*100); 
+      ballVelocity.x *= -1;
 
-    switch (padintersects[0]["object"].name) {
-      case 0:
-        angle = MathUtils.degToRad(60);
-        break;
-
-      case 1:
-        //console.log("1");
-        angle = MathUtils.degToRad(70);
-
-        break;
-      case 2:
-        angle = MathUtils.degToRad(90);
-        ballVelocity.x *= -1;
-        //console.log("2");
-        break;
-
-      case 3:
-        angle = MathUtils.degToRad(-70);
-        //console.log("3");
-        break;
-
-      case 4:
-        angle = MathUtils.degToRad(-60);
-        //console.log("4");
-        break;
+    }else
+    {
+      angle = MathUtils.degToRad(90 - distance*100); 
+      ballVelocity.x *= -1;
     }
 
     newReflect(
@@ -573,7 +555,7 @@ function updateBall(ballVelocity) {
         Math.sin(min_angle) *
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
-
+    if(ball.position.y<-2) ball.position.y=-2;
     if (ballVelocity.y < 0) ballVelocity.y *= -1;
   }
   if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
@@ -600,15 +582,13 @@ function updateBall(ballVelocity) {
     }
   }
 
-  const lrdirection = new THREE.Vector3(ballVelocity.x, 0, 0);
+  const lrdirection = new THREE.Vector3(ballVelocity.x*2, 0, 0);
 
   tbraycaster.ray.origin.copy(ball.position);
   tbraycaster.ray.direction.copy(lrdirection);
 
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
-  const rlpadintersects = tbraycaster.intersectObjects(padCollision);
-
-  if (rlintersects.length > 0 && rlintersects[0].distance <= 0.05) {
+  if (rlintersects.length > 0 && rlintersects[0].distance <= 0.07) {
     ballVelocity.x *= -1;
 
     if (rlintersects[0]["object"].parent == brickHolder) {
@@ -625,50 +605,44 @@ function updateBall(ballVelocity) {
         }
       }
     }
-  }
 
-  if (
-    rlpadintersects.length > 0 &&
-    rlpadintersects[0].distance <= 0.05 &&
-    tempoDecorrido > 0.001
-  ) {
-    ballVelocity.y *= -1;
-    tempoDecorrido = 0;
+    if(rlintersects[0]["object"].name =="Pad" && tempoDecorrido>0.5)
+    {
+      tempoDecorrido = 0;
     clock.stop();
     clock.start();
-    let angle;
+      let angle;
+      var distance = (1+pad.position.x) - (1 + ball.position.x); 
+    //Distance pode variar de -0.30 até 0.30
+    if(distance < 0)
+    {
+      angle = MathUtils.degToRad(-90 - distance*100); 
+      ballVelocity.x *= -1;
 
-    switch (rlpadintersects[0]["object"].name) {
-      case 0:
-        angle = MathUtils.degToRad(60);
-        break;
+      newReflect(
+        ballVelocity,
+        new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
+      );
 
-      case 1:
-        //console.log("1");
-        angle = MathUtils.degToRad(70);
+      if(ballVelocity.x < 0) ballVelocity.x *=-1; 
 
-        break;
-      case 2:
-        angle = MathUtils.degToRad(90);
-        //console.log("2");
-        break;
+    }else
+    {
+      angle = MathUtils.degToRad(90 - distance*100); 
+      ballVelocity.x *= -1;
 
-      case 3:
-        angle = MathUtils.degToRad(-70);
-        //console.log("3");
-        break;
+      newReflect(
+        ballVelocity,
+        new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
+      );
 
-      case 4:
-        angle = MathUtils.degToRad(-60);
-        //console.log("4");
-        break;
+      if(ballVelocity.x > 0) ballVelocity.x *=-1; 
     }
 
-    newReflect(
-      ballVelocity,
-      new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
-    );
+    
+    }
   }
+
 }
 
 function newReflect(v, normal) {
