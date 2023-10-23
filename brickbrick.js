@@ -89,8 +89,6 @@ createBorders();
 var brickMatrix = initializeMatrix();
 let pad = createPad();
 collidableMeshList.push(pad);
-// let padCollision = createPadCollision();
-let padCollision = createPadCollision();
 let ball = createBall(pad.position.x, pad.position.y + 0.1);
 
 // Boolean flag to track whether the pointer is locked
@@ -555,10 +553,10 @@ function updateBall(ballVelocity) {
         Math.sin(min_angle) *
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
-    if(ball.position.y<-2) ball.position.y=-2;
+    if(ball.position.y<-2) ball.position.y=-1.95;
     if (ballVelocity.y < 0) ballVelocity.y *= -1;
   }
-  if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
+  else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
