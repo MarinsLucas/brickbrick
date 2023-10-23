@@ -4,7 +4,12 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
 
-let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu
+let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu ; 4 = ganhou
+let initialSpeed = 0.02,
+  finalSpeed = 0.04,
+  speed = initialSpeed;
+const ballClock = new THREE.Clock();
+let ballAngle;
 let level = 1;
 let balls = 0;
 let rows = 0;
@@ -13,10 +18,10 @@ let cols = 0;
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
-light = new THREE.DirectionalLight(0xffffff,0.7);
+light = new THREE.DirectionalLight(0xffffff, 0.7);
 light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
-light.position.set( 2, 5, 10);
-  
+light.position.set(2, 5, 10);
+
 // Shadow settings
 light.castShadow = true;
 light.shadow.mapSize.width = 2048;
@@ -31,17 +36,15 @@ light.shadowDarkness = 0.5;
 scene.add(light);
 
 scene.add(light.target);
-light.target.position.set(0,-2,0);
+light.target.position.set(0, -2, 0);
 
-let light2 = new THREE.AmbientLight(0xffffff, 0.3)
+let light2 = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(light2);
-
-
 
 keyboard = new KeyboardState();
 var ballVelocity = new THREE.Vector3(
-  0.03 * Math.cos(70),
-  0.03 * Math.sin(70),
+  speed * Math.cos(32.9875),
+  speed * Math.sin(32.9875),
   0
 );
 let dh = 0.21; //delta de
@@ -100,8 +103,9 @@ document.addEventListener("click", function (event) {
   // Check if it's a left mouse click (button 0)
   if (event.button === 0) {
     // Handle the left mouse click here
-    console.log("Left mouse click detected!");
+    //console.log("Left mouse click detected!");
     if ((gameStatus == 3 || gameStatus == 0) && isPointerLocked) {
+      ballClock.start();
       gameStatus = 1;
     }
     // You can perform your desired actions here
@@ -112,8 +116,10 @@ document.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     if (gameStatus != 3 && gameStatus != 4) {
       if (isPointerLocked) {
+        ballClock.stop();
         gameStatus = 2;
       } else if (gameStatus != 0) {
+        ballClock.running = true;
         gameStatus = 1;
       }
     }
@@ -159,8 +165,8 @@ render();
 function reset() {
   gameStatus = 1;
   ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
-  ballVelocity.x = 0.03 * Math.cos(70);
-  ballVelocity.y = 0.03 * Math.sin(70);
+  ballVelocity.x = initialSpeed * Math.cos(32.9875);
+  ballVelocity.y = initialSpeed * Math.sin(32.9875);
 
   gameStatus = 3;
   resetBricks();
@@ -250,7 +256,7 @@ function createBall(x, y) {
     color: "rgb(255,255,255)",
     shininess: "0.001",
     specular: "rgb(255,255,255)",
-    emissive: "rbg(255,255,255)",
+    emissive: "rgb(255,255,255)",
     emissiveIntensity: "1.0",
   });
   var obj = new THREE.Mesh(geometry, material);
@@ -266,11 +272,14 @@ function createBall(x, y) {
 
 function createPad() {
   let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
-  let material = new THREE.MeshLambertMaterial( {color: "lightblue", side: THREE.DoubleSide} );
+  let material = new THREE.MeshLambertMaterial({
+    color: "lightblue",
+    side: THREE.DoubleSide,
+  });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(0, -2.1, 0);
-  obj.castShadow = true; 
+  obj.castShadow = true;
   obj.name = "Pad";
   scene.add(obj);
   return obj;
@@ -499,20 +508,20 @@ function createBrick(x, y, resistance, brickHolder) {
 function updateBall(ballVelocity) {
   if (gameStatus != 1) return;
 
-  console.log(tempoDecorrido)
+  //console.log(tempoDecorrido);
   tempoDecorrido = clock.getElapsedTime();
   ball.translateX(ballVelocity.x);
   ball.translateY(ballVelocity.y);
 
   const tbraycaster = new THREE.Raycaster();
-  const tbdirection = new THREE.Vector3(0, ballVelocity.y*2 , 0);
+  const tbdirection = new THREE.Vector3(0, 0.07*(Math.abs(ballVelocity.y)/ballVelocity.y), 0);
 
   tbraycaster.ray.origin.copy(ball.position);
   tbraycaster.ray.direction.copy(tbdirection);
 
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
   if (
-    tbintersects.length > 0 && 
+    tbintersects.length > 0 &&
     tbintersects[0].distance <= 0.05 &&
     tempoDecorrido > 0.5 &&
     tbintersects[0]["object"].name == "Pad"
@@ -523,16 +532,13 @@ function updateBall(ballVelocity) {
     clock.start();
 
     let angle;
-    var distance = (1+pad.position.x) - (1 + ball.position.x); 
+    var distance = 1 + pad.position.x - (1 + ball.position.x);
     //Distance pode variar de -0.30 até 0.30
-    if(distance < 0)
-    {
-      angle = MathUtils.degToRad(-90 - distance*100); 
+    if (distance < 0) {
+      angle = MathUtils.degToRad(-90 - distance * 100);
       ballVelocity.x *= -1;
-
-    }else
-    {
-      angle = MathUtils.degToRad(90 - distance*100); 
+    } else {
+      angle = MathUtils.degToRad(90 - distance * 100);
       ballVelocity.x *= -1;
     }
 
@@ -553,10 +559,9 @@ function updateBall(ballVelocity) {
         Math.sin(min_angle) *
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
-    if(ball.position.y<-2) ball.position.y=-1.95;
+    if (ball.position.y < -2) ball.position.y = -1.95;
     if (ballVelocity.y < 0) ballVelocity.y *= -1;
-  }
-  else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
+  } else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
@@ -575,12 +580,12 @@ function updateBall(ballVelocity) {
       gameStatus = 3;
       pad.position.set(0, -2.1, 0);
       ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
-      ballVelocity.x = 0.03 * Math.cos(70);
-      ballVelocity.y = 0.03 * Math.sin(70);
+      ballVelocity.x = 0.02 * Math.cos(32.9875);
+      ballVelocity.y = 0.02 * Math.sin(32.9875);
     }
   }
 
-  const lrdirection = new THREE.Vector3(ballVelocity.x*2, 0, 0);
+  const lrdirection = new THREE.Vector3(0.07*(Math.abs(ballVelocity.x)/ballVelocity.x), 0, 0);
 
   tbraycaster.ray.origin.copy(ball.position);
   tbraycaster.ray.direction.copy(lrdirection);
@@ -604,43 +609,36 @@ function updateBall(ballVelocity) {
       }
     }
 
-    if(rlintersects[0]["object"].name =="Pad" && tempoDecorrido>0.5)
-    {
+    if (rlintersects[0]["object"].name == "Pad" && tempoDecorrido > 0.5) {
       tempoDecorrido = 0;
-    clock.stop();
-    clock.start();
+      clock.stop();
+      clock.start();
       let angle;
-      var distance = (1+pad.position.x) - (1 + ball.position.x); 
-    //Distance pode variar de -0.30 até 0.30
-    if(distance < 0)
-    {
-      angle = MathUtils.degToRad(-90 - distance*100); 
-      ballVelocity.x *= -1;
+      var distance = 1 + pad.position.x - (1 + ball.position.x);
+      //Distance pode variar de -0.30 até 0.30
+      if (distance < 0) {
+        angle = MathUtils.degToRad(-90 - distance * 100);
+        ballVelocity.x *= -1;
 
-      newReflect(
-        ballVelocity,
-        new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
-      );
+        newReflect(
+          ballVelocity,
+          new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
+        );
 
-      if(ballVelocity.x < 0) ballVelocity.x *=-1; 
+        if (ballVelocity.x < 0) ballVelocity.x *= -1;
+      } else {
+        angle = MathUtils.degToRad(90 - distance * 100);
+        ballVelocity.x *= -1;
 
-    }else
-    {
-      angle = MathUtils.degToRad(90 - distance*100); 
-      ballVelocity.x *= -1;
+        newReflect(
+          ballVelocity,
+          new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
+        );
 
-      newReflect(
-        ballVelocity,
-        new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0).normalize()
-      );
-
-      if(ballVelocity.x > 0) ballVelocity.x *=-1; 
-    }
-
-    
+        if (ballVelocity.x > 0) ballVelocity.x *= -1;
+      }
     }
   }
-
 }
 
 function newReflect(v, normal) {
@@ -653,6 +651,22 @@ function stickBall() {
   ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
 }
 
+function increaseSpeed() {
+  var timeSpent = ballClock.getElapsedTime();
+  //console.log(timeSpent);
+  var progress = timeSpent / 15;
+  
+  // Increase the speed linearly until it reaches double the initial speed
+  
+  if (progress < 1) {
+    speed = initialSpeed + progress * (finalSpeed - initialSpeed);
+    console.log(speed);
+    var normalized = new THREE.Vector3();
+    normalized.copy(ballVelocity).normalize();
+    ballVelocity.copy(normalized).multiplyScalar(speed);
+  }
+}
+
 function render() {
   updateBall(ballVelocity);
   updateBallAngle();
@@ -663,6 +677,7 @@ function render() {
   }
 
   if (gameStatus == 1) {
+    increaseSpeed();
     message.changeMessage("Press Space to pause");
   }
 
