@@ -91,7 +91,7 @@ createBorders();
 var brickMatrix = initializeMatrix();
 let pad = createPad();
 let padCollision = createPadCollision();
-let ball = createBall(0.12, -2);
+let ball = createBall(pad.position.x, pad.position.y + 0.1);
 
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
@@ -160,8 +160,7 @@ render();
 
 function reset() {
   gameStatus = 1;
-  ball.position.set(0.12, -2, 0);
-  pad.position.set(0, -2.1, 0);
+  ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
   ballVelocity.x = 0.03 * Math.cos(70);
   ballVelocity.y = 0.03 * Math.sin(70);
 
@@ -225,7 +224,7 @@ function readMatrix(matrixString) {
 }
 
 function onMouseMoveLocked(event) {
-  if (gameStatus != 1) return;
+  //if (gameStatus != 1) return;
   // Calculate the horizontal movement based on mouse position
   const movementX =
     event.movementX || event.mozMovementX || event.webkitMovementX || 0;
@@ -521,7 +520,7 @@ function updateBall(ballVelocity) {
   if (
     padintersects.length > 0 &&
     padintersects[0].distance <= 0.07 &&
-    tempoDecorrido > 0.1
+    tempoDecorrido > 0.001
   ) {
     ballVelocity.y *= -1;
     tempoDecorrido = 0;
@@ -594,8 +593,8 @@ function updateBall(ballVelocity) {
       }
     } else if (tbintersects[0]["object"].name == "down") {
       gameStatus = 3;
-      ball.position.set(0.12, -2, 0);
       pad.position.set(0, -2.1, 0);
+      ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
       ballVelocity.x = 0.03 * Math.cos(70);
       ballVelocity.y = 0.03 * Math.sin(70);
     }
@@ -631,7 +630,7 @@ function updateBall(ballVelocity) {
   if (
     rlpadintersects.length > 0 &&
     rlpadintersects[0].distance <= 0.05 &&
-    tempoDecorrido > 1
+    tempoDecorrido > 0.001
   ) {
     ballVelocity.y *= -1;
     tempoDecorrido = 0;
@@ -677,11 +676,17 @@ function newReflect(v, normal) {
 
   return v.sub(v1.copy(normal).multiplyScalar(2 * v.dot(normal)));
 }
+
+function stickBall() {
+  ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
+}
+
 function render() {
   updateBall(ballVelocity);
   updateBallAngle();
 
   if (gameStatus == 0) {
+    stickBall();
     message.changeMessage("Press Space and then Left Click to start");
   }
 
@@ -694,6 +699,7 @@ function render() {
   }
 
   if (gameStatus == 3) {
+    stickBall();
     message.changeMessage("Left click to continue!");
   }
 
