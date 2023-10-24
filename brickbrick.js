@@ -109,15 +109,11 @@ scene.add(camera);
 let powerUpsList = [];
 
 document.addEventListener("click", function (event) {
-  // Check if it's a left mouse click (button 0)
   if (event.button === 0) {
-    // Handle the left mouse click here
-    //console.log("Left mouse click detected!");
     if ((gameStatus == 3 || gameStatus == 0) && isPointerLocked) {
       ballClock.start();
       gameStatus = 1;
     }
-    // You can perform your desired actions here
   }
 });
 
@@ -444,8 +440,8 @@ function updateBrick(brick) {
     case 0:
       //obj.position.set(1000, 1000, 1000);
       brokenBricks += 1; 
- 
-      if(brokenBricks >= 1)
+
+      if(brokenBricks >= 10)
       { 
         var position = new THREE.Vector3;
         obj.getWorldPosition(position); 
@@ -541,8 +537,6 @@ function updateBall(b) {
   if (gameStatus != 1) return;
   var bola = b.obj; 
   var ballVelocity = b.velocity; 
-
-  //console.log(tempoDecorrido);
   tempoDecorrido = clock.getElapsedTime();
   bola.translateX(ballVelocity.x);
   bola.translateY(ballVelocity.y);
@@ -621,8 +615,12 @@ function updateBall(b) {
         bola.position.set(pad.position.x, pad.position.y + 0.1, 0);
         gameStatus = 3;
         pad.position.set(0, -2.1, 0);
-        ballVelocity.x = initialSpeed * Math.cos(MathUtils.degToRad(90));
+        ballVelocity.x = 0;
         ballVelocity.y = initialSpeed * Math.sin(MathUtils.degToRad(90));
+        for(let i =powerUpsList.length-1; i>=0;i--){
+          scene.remove(powerUpsList[i]);
+        }
+        powerUpsList = [];
       }
     }
   }
@@ -713,15 +711,12 @@ function displaySpeed() {
 
 function increaseSpeed(b) {
   var timeSpent = ballClock.getElapsedTime();
-  //console.log(timeSpent);
   var progress = timeSpent / 15;
 
   var ballVelocity = b.velocity; 
-  // Increase the speed linearly until it reaches double the initial speed
   
   if (progress < 1) {
     speed = initialSpeed + progress * (finalSpeed - initialSpeed);
-    //console.log(speed);
     var normalized = new THREE.Vector3();
     normalized.copy(ballVelocity).normalize();
     ballVelocity.copy(normalized).multiplyScalar(speed);
@@ -740,21 +735,13 @@ function duplicaBola()
       ballLista[0].velocity.clone().applyMatrix4(matrizRotacao)
     ); 
     
-    var ang = Math.atan(ballLista[0].velocity.y / ballLista[0].velocity.x); 
-    var min_angle = MathUtils.degToRad(45);
-    if (Math.abs(ang) < min_angle) {
-      ballLista[0].velocity.x =
-        speed *
-        Math.cos(min_angle) *
-        (ballLista[0].velocity.x / Math.abs(ballLista[0].velocity.x));
-        ballLista[0].velocity.y =
-        speed *
-        Math.sin(min_angle) *
-        (ballLista[0].velocity.y / Math.abs(ballLista[0].velocity.y));
-      }
-    ballLista.push(novaBola);
-    console.log("AU AU"); 
-  
+    if(novaBola.velocity.y <0.01)
+    {
+      var aux = novaBola.velocity.y;
+      novaBola.velocity.y =  novaBola.velocity.x;
+      novaBola.velocity.x = aux;
+    }
+    ballLista.push(novaBola);  
 }
 
 function updatePU(pu)
@@ -781,12 +768,11 @@ function updatePU(pu)
     }
     scene.remove(pu);
     //BARABARABARA: AUUMENTAR ESSE NÚMERO, PARA AS ESTRELAS
-    if(ballLista.length <= 20)
+    if(ballLista.length <= 1)
       duplicaBola();
      
   }
   if(tbintersects.length > 0 && tbintersects[0].distance<=0.05 && tbintersects[0]["object"].name == "down") 
-
   {
     var index = powerUpsList.indexOf(pu);
     if (index > -1) {
@@ -798,7 +784,6 @@ function updatePU(pu)
 }
 
 function render() {
-  console.log(ballLista.length); 
   message2.changeMessage("Speed: " + (speed * 100/2.5).toFixed(4));
 
   if (gameStatus == 0) {
