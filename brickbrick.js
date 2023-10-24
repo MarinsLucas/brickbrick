@@ -4,16 +4,24 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
 
+class ball{
+  constructor(x, y, velocity)
+  {
+    this.velocity = velocity;
+    this.obj = createBall(x, y);
+  }
+}
+
+let puColor = 0xff0000;
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu ; 4 = ganhou
-let initialSpeed = 0.02,
-  finalSpeed = 0.04,
+let initialSpeed = 0.025,
+  finalSpeed = 0.05,
   speed = initialSpeed;
 const ballClock = new THREE.Clock();
-let ballAngle;
 let level = 1;
-let balls = 0;
 let rows = 0;
 let cols = 0;
+let brokenBricks = 0;
 
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
@@ -42,9 +50,9 @@ let light2 = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(light2);
 
 keyboard = new KeyboardState();
-var ballVelocity = new THREE.Vector3(
-  speed * Math.cos(32.9875),
-  speed * Math.sin(32.9875),
+var ballInicialVelocity = new THREE.Vector3(
+  0,
+  speed * Math.sin(MathUtils.degToRad(90)),
   0
 );
 let dh = 0.21; //delta de
@@ -92,12 +100,13 @@ createBorders();
 var brickMatrix = initializeMatrix();
 let pad = createPad();
 collidableMeshList.push(pad);
-let ball = createBall(pad.position.x, pad.position.y + 0.1);
-
+let ballLista = [];
+ballLista.push(new ball(pad.position.x, pad.position.y + 0.1, ballInicialVelocity));
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
 
 scene.add(camera);
+let powerUpsList = [];
 
 document.addEventListener("click", function (event) {
   // Check if it's a left mouse click (button 0)
@@ -157,6 +166,11 @@ playerControls.addEventListener("unlock", () => {
   isPointerLocked = false;
 });
 var message = new SecondaryBox("");
+var message2 = new SecondaryBox("");
+
+
+//change the position of the message to the top of the screen
+
 
 render();
 
@@ -164,9 +178,22 @@ render();
 
 function reset() {
   gameStatus = 1;
-  ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
-  ballVelocity.x = initialSpeed * Math.cos(32.9875);
-  ballVelocity.y = initialSpeed * Math.sin(32.9875);
+  
+  for(let i =ballLista.length-1; i>=0;i--){
+    scene.remove(ballLista[i]);
+    removeBola(ballLista[i]);
+  } 
+
+  for(let i =powerUpsList.length-1; i>=0;i--){
+    scene.remove(powerUpsList[i]);
+  }
+  ballLista = [];
+  powerUpsList = [];
+  
+  var inicialVelocity = new THREE.Vector3();
+  inicialVelocity.x = 0;
+  inicialVelocity.y = initialSpeed*Math.sin(MathUtils.degToRad(90));
+  ballLista.push(new ball(pad.position.x, pad.position.y+0.1, inicialVelocity));
 
   gameStatus = 3;
   resetBricks();
@@ -285,27 +312,6 @@ function createPad() {
   return obj;
 }
 
-/* function createPadCollision() {
-  let padCollisionArray = [];
-  for (let index = 0; index < 5; index++) {
-    let geometry = new THREE.BoxGeometry(0.13, 0.1, 0.1);
-
-    //esse material não aparece, é apenas para fins de depuração! xD
-    var material = new THREE.MeshStandardMaterial({
-      color: Math.random() * 0xffffff,
-      transparent: true,
-      opacity: 0,
-    });
-    material.side = THREE.DoubleSide;
-    var obj = new THREE.Mesh(geometry, material);
-    obj.position.set(-0.24 + index * 0.12, 0, 0);
-    obj.name = index;
-    pad.add(obj);
-    padCollisionArray.push(obj);
-  }
-  return padCollisionArray;
-} */
-
 function chooseLevel(level) {
   var matrixString = "";
 
@@ -422,7 +428,7 @@ function removeBrick(brickName) {
   const brickIndex = collidableMeshList.findIndex(
     (brick) => brick.name === brickName
   );
-
+  
   if (brickIndex !== -1) {
     const removedBrick = collidableMeshList.splice(brickIndex, 1)[0];
     brickHolder.remove(removedBrick);
@@ -435,6 +441,30 @@ function updateBrick(brick) {
   switch (brick.resistance) {
     case 0:
       //obj.position.set(1000, 1000, 1000);
+      brokenBricks += 1; 
+ 
+      if(brokenBricks >= 1)
+      { 
+        var position = new THREE.Vector3;
+        obj.getWorldPosition(position); 
+
+        //Objeto caindo para o powerup
+        let pu = new THREE.OctahedronGeometry(0.07 , 0);
+        let pumaterial = new THREE.MeshPhongMaterial({
+          color: "rgb(255,255,255)",
+          shininess: "0.001",
+          specular: "rgb(255,255,255)",
+        }); 
+        var obj2 = new THREE.Mesh(pu, pumaterial);
+        obj2.position.set(position.x,position.y, 0 );
+        obj2.castShadow = true; 
+        var light = new THREE.PointLight(0xffffff, 1, 1);
+        light.position.set(0, 0, 0);
+        obj2.add(light);
+        scene.add(obj2);
+        brokenBricks = 0; 
+        powerUpsList.push(obj2);
+      }
       removeBrick(obj.name);
       if (brickHolder.children.length == 0) gameStatus = 4;
       break;
@@ -505,18 +535,20 @@ function createBrick(x, y, resistance, brickHolder) {
   return brick;
 }
 
-function updateBall(ballVelocity) {
+function updateBall(b) {
   if (gameStatus != 1) return;
+  var bola = b.obj; 
+  var ballVelocity = b.velocity; 
 
   //console.log(tempoDecorrido);
   tempoDecorrido = clock.getElapsedTime();
-  ball.translateX(ballVelocity.x);
-  ball.translateY(ballVelocity.y);
+  bola.translateX(ballVelocity.x);
+  bola.translateY(ballVelocity.y);
 
   const tbraycaster = new THREE.Raycaster();
   const tbdirection = new THREE.Vector3(0, 0.07*(Math.abs(ballVelocity.y)/ballVelocity.y), 0);
 
-  tbraycaster.ray.origin.copy(ball.position);
+  tbraycaster.ray.origin.copy(bola.position);
   tbraycaster.ray.direction.copy(tbdirection);
 
   const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
@@ -532,7 +564,7 @@ function updateBall(ballVelocity) {
     clock.start();
 
     let angle;
-    var distance = 1 + pad.position.x - (1 + ball.position.x);
+    var distance = 1 + pad.position.x - (1 + bola.position.x);
     //Distance pode variar de -0.30 até 0.30
     if (distance < 0) {
       angle = MathUtils.degToRad(-90 - distance * 100);
@@ -551,15 +583,15 @@ function updateBall(ballVelocity) {
     var min_angle = MathUtils.degToRad(30);
     if (Math.abs(ang) < min_angle) {
       ballVelocity.x =
-        0.03 *
+        speed *
         Math.cos(min_angle) *
         (ballVelocity.x / Math.abs(ballVelocity.x));
       ballVelocity.y =
-        0.03 *
+        speed *
         Math.sin(min_angle) *
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
-    if (ball.position.y < -2) ball.position.y = -1.95;
+    if (bola.position.y < -2) bola.position.y = -1.95;
     if (ballVelocity.y < 0) ballVelocity.y *= -1;
   } else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
@@ -577,17 +609,25 @@ function updateBall(ballVelocity) {
         }
       }
     } else if (tbintersects[0]["object"].name == "down") {
-      gameStatus = 3;
-      pad.position.set(0, -2.1, 0);
-      ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
-      ballVelocity.x = 0.02 * Math.cos(32.9875);
-      ballVelocity.y = 0.02 * Math.sin(32.9875);
+
+      if(ballLista.length > 1)
+      { 
+        removeBola(b);
+        return; 
+      }
+      else {
+        bola.position.set(pad.position.x, pad.position.y + 0.1, 0);
+        gameStatus = 3;
+        pad.position.set(0, -2.1, 0);
+        ballVelocity.x = initialSpeed * Math.cos(MathUtils.degToRad(90));
+        ballVelocity.y = initialSpeed * Math.sin(MathUtils.degToRad(90));
+      }
     }
   }
 
   const lrdirection = new THREE.Vector3(0.07*(Math.abs(ballVelocity.x)/ballVelocity.x), 0, 0);
 
-  tbraycaster.ray.origin.copy(ball.position);
+  tbraycaster.ray.origin.copy(bola.position);
   tbraycaster.ray.direction.copy(lrdirection);
 
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
@@ -614,7 +654,7 @@ function updateBall(ballVelocity) {
       clock.stop();
       clock.start();
       let angle;
-      var distance = 1 + pad.position.x - (1 + ball.position.x);
+      var distance = 1 + pad.position.x - (1 + bola.position.x);
       //Distance pode variar de -0.30 até 0.30
       if (distance < 0) {
         angle = MathUtils.degToRad(-90 - distance * 100);
@@ -639,6 +679,8 @@ function updateBall(ballVelocity) {
       }
     }
   }
+
+  bola.velocity = ballVelocity; 
 }
 
 function newReflect(v, normal) {
@@ -647,29 +689,114 @@ function newReflect(v, normal) {
   return v.sub(v1.copy(normal).multiplyScalar(2 * v.dot(normal)));
 }
 
-function stickBall() {
-  ball.position.set(pad.position.x, pad.position.y + 0.1, 0);
+function removeBola(bola){
+  // remove bola da lista
+  var index = ballLista.indexOf(bola);
+  if (index > -1) {
+    ballLista.splice(index, 1);
+  }
+
+  // remove bola da cena
+  scene.remove(bola.obj);
 }
 
-function increaseSpeed() {
+function stickBall() {
+  ballLista[0].obj.position.set(pad.position.x, pad.position.y+0.1, 0);
+  ballLista[0].velocity = ballInicialVelocity;
+} 
+
+function displaySpeed() {
+  
+}
+
+function increaseSpeed(b) {
   var timeSpent = ballClock.getElapsedTime();
   //console.log(timeSpent);
   var progress = timeSpent / 15;
-  
+
+  var ballVelocity = b.velocity; 
   // Increase the speed linearly until it reaches double the initial speed
   
   if (progress < 1) {
     speed = initialSpeed + progress * (finalSpeed - initialSpeed);
-    console.log(speed);
+    //console.log(speed);
     var normalized = new THREE.Vector3();
     normalized.copy(ballVelocity).normalize();
     ballVelocity.copy(normalized).multiplyScalar(speed);
+    b.velocity = ballVelocity;
   }
 }
 
+function duplicaBola()
+{
+ 
+    const matrizRotacao = new THREE.Matrix4();
+    matrizRotacao.makeRotationAxis(new THREE.Vector3(0,0,1), Math.PI/4);
+    var novaBola = new ball(
+      ballLista[0].obj.position.x,
+      ballLista[0].obj.position.y,
+      ballLista[0].velocity.clone().applyMatrix4(matrizRotacao)
+    ); 
+    
+    var ang = Math.atan(ballLista[0].velocity.y / ballLista[0].velocity.x); 
+    var min_angle = MathUtils.degToRad(45);
+    if (Math.abs(ang) < min_angle) {
+      ballLista[0].velocity.x =
+        speed *
+        Math.cos(min_angle) *
+        (ballLista[0].velocity.x / Math.abs(ballLista[0].velocity.x));
+        ballLista[0].velocity.y =
+        speed *
+        Math.sin(min_angle) *
+        (ballLista[0].velocity.y / Math.abs(ballLista[0].velocity.y));
+      }
+    ballLista.push(novaBola);
+    console.log("AU AU"); 
+  
+}
+
+function updatePU(pu)
+{
+  pu.translateY(-0.015);
+  puColor += 500;
+  pu.material.color.setHex(puColor); 
+  const tbraycaster = new THREE.Raycaster();
+  const tbdirection = new THREE.Vector3(0, -1, 0);
+
+  tbraycaster.ray.origin.copy(pu.position);
+  tbraycaster.ray.direction.copy(tbdirection);
+
+  const tbintersects = tbraycaster.intersectObjects(collidableMeshList);
+  if (
+    tbintersects.length > 0 &&
+    tbintersects[0].distance <= 0.05 &&
+    tbintersects[0]["object"].name == "Pad"
+  ) 
+  {
+    var index = powerUpsList.indexOf(pu);
+    if (index > -1) {
+      powerUpsList.splice(index, 1);
+    }
+    scene.remove(pu);
+    //BARABARABARA: AUUMENTAR ESSE NÚMERO, PARA AS ESTRELAS
+    if(ballLista.length <= 20)
+      duplicaBola();
+     
+  }
+  if(tbintersects.length > 0 && tbintersects[0].distance<=0.05 && tbintersects[0]["object"].name == "down")
+  {
+    var index = powerUpsList.indexOf(pu);
+    if (index > -1) {
+      powerUpsList.splice(index, 1);
+    }
+    scene.remove(pu);
+  }
+
+}
+
 function render() {
-  updateBall(ballVelocity);
-  updateBallAngle();
+  console.log(ballLista.length); 
+
 
   if (gameStatus == 0) {
     stickBall();
@@ -677,7 +804,17 @@ function render() {
   }
 
   if (gameStatus == 1) {
-    increaseSpeed();
+    for(let i =0; i < ballLista.length;i++)
+    {
+      if(ballLista[i]){
+      increaseSpeed(ballLista[i]);
+      updateBall(ballLista[i]);
+    }
+    }
+    for(let i =0; i<powerUpsList.length;i++)
+    {
+      updatePU(powerUpsList[i]);
+    }
     message.changeMessage("Press Space to pause");
   }
 
@@ -696,12 +833,6 @@ function render() {
 
   requestAnimationFrame(render);
   renderer.render(scene, camera); // Render scene
-}
-
-function updateBallAngle() {
-  var ang = Math.atan(ballVelocity.y / ballVelocity.x);
-  ang = MathUtils.radToDeg(ang);
-  message.changeMessage("Ball angle: " + ang);
 }
 
 function createBorders() {
