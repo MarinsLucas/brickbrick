@@ -166,7 +166,9 @@ playerControls.addEventListener("unlock", () => {
   isPointerLocked = false;
 });
 var message = new SecondaryBox("");
-var message2 = new SecondaryBox("");
+var message2 = new SecondaryBox("Seremos campões");
+message2.box.style.top = "0";
+message2.box.style.bottom = "";
 
 
 //change the position of the message to the top of the screen
@@ -783,7 +785,8 @@ function updatePU(pu)
       duplicaBola();
      
   }
-  if(tbintersects.length > 0 && tbintersects[0].distance<=0.05 && tbintersects[0]["object"].name == "down")
+  if(tbintersects.length > 0 && tbintersects[0].distance<=0.05 && tbintersects[0]["object"].name == "down") 
+
   {
     var index = powerUpsList.indexOf(pu);
     if (index > -1) {
@@ -796,7 +799,7 @@ function updatePU(pu)
 
 function render() {
   console.log(ballLista.length); 
-
+  message2.changeMessage("Speed: " + (speed * 100/2.5).toFixed(4));
 
   if (gameStatus == 0) {
     stickBall();
