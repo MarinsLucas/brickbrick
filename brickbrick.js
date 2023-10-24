@@ -3,6 +3,8 @@ import { MathUtils } from "three";
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
+import {CSG} from "../libs/other/CSGMesh.js";
+
 
 class ball{
   constructor(x, y, velocity)
@@ -101,7 +103,7 @@ var brickMatrix = initializeMatrix();
 let pad = createPad();
 collidableMeshList.push(pad);
 let ballLista = [];
-ballLista.push(new ball(pad.position.x, pad.position.y + 0.1, ballInicialVelocity));
+ballLista.push(new ball(pad.position.x, pad.position.y + 0.2, ballInicialVelocity));
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
 
@@ -191,7 +193,7 @@ function reset() {
   var inicialVelocity = new THREE.Vector3();
   inicialVelocity.x = 0;
   inicialVelocity.y = initialSpeed*Math.sin(MathUtils.degToRad(90));
-  ballLista.push(new ball(pad.position.x, pad.position.y+0.1, inicialVelocity));
+  ballLista.push(new ball(pad.position.x, pad.position.y+0.2, inicialVelocity));
 
   gameStatus = 3;
   resetBricks();
@@ -296,18 +298,44 @@ function createBall(x, y) {
 }
 
 function createPad() {
-  let geometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
   let material = new THREE.MeshLambertMaterial({
     color: "lightblue",
     side: THREE.DoubleSide,
   });
-  material.side = THREE.DoubleSide;
-  var obj = new THREE.Mesh(geometry, material);
-  obj.position.set(0, -2.1, 0);
-  obj.castShadow = true;
-  obj.name = "Pad";
-  scene.add(obj);
-  return obj;
+  // create a cube
+  let cubeGeometry = new THREE.BoxGeometry(0.6, 0.1, 0.1);
+  let cube = new THREE.Mesh(cubeGeometry, material);
+  // position the cube
+  cube.position.set(0.0, 0.05, 0.0);
+  cube.matrixAutoUpdate = false; 
+  cube.updateMatrix();
+
+  let cylindergeo = new THREE.CylinderGeometry(0.999,0.999,0.1,50,1);
+  let cylinder = new THREE.Mesh(cylindergeo, material);
+  cylinder.position.set(0,-0.85,0); 
+  cylinder.matrixAutoUpdate = false; 
+  cylinder.rotateX((MathUtils.degToRad(90))); 
+  cylinder.updateMatrix(); 
+  let cubaogeo = new THREE.BoxGeometry(2,2,1);
+  let cubao = new THREE.Mesh(cubaogeo, material);
+  cubao.position.set(0,-0.9,0)
+  cubao.matrixAutoUpdate = false;
+  cubao.updateMatrix(); 
+
+  let cubeCSG = CSG.fromMesh(cube);
+  let cylinderCSG = CSG.fromMesh(cylinder);
+  let cubaoCSG = CSG.fromMesh(cubao);
+  let cylinder_cubao = cylinderCSG.subtract(cubaoCSG);
+  let rebatedor_ = cubeCSG.union(cylinder_cubao);
+  let rebatedor = CSG.toMesh(rebatedor_, new THREE.Matrix4());
+  rebatedor.material = material; 
+  scene.add(rebatedor);
+
+  rebatedor.position.set(0, -2.1, 0);
+  rebatedor.castShadow = true;
+  rebatedor.name = "Pad";
+  scene.add(rebatedor);
+  return rebatedor;
 }
 
 function chooseLevel(level) {
@@ -441,6 +469,7 @@ function updateBrick(brick) {
       //obj.position.set(1000, 1000, 1000);
       brokenBricks += 1; 
 
+      //Bamboleio
       if(brokenBricks >= 10)
       { 
         var position = new THREE.Vector3;
@@ -587,7 +616,7 @@ function updateBall(b) {
         Math.sin(min_angle) *
         (ballVelocity.y / Math.abs(ballVelocity.y));
     }
-    if (bola.position.y < -2) bola.position.y = -1.95;
+    if (bola.position.y < -2) bola.position.y = -1.8;
     if (ballVelocity.y < 0) ballVelocity.y *= -1;
   } else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
@@ -612,7 +641,7 @@ function updateBall(b) {
         return; 
       }
       else {
-        bola.position.set(pad.position.x, pad.position.y + 0.1, 0);
+        bola.position.set(pad.position.x, pad.position.y + 0.2, 0);
         gameStatus = 3;
         pad.position.set(0, -2.1, 0);
         ballVelocity.x = 0;
@@ -701,7 +730,7 @@ function removeBola(bola){
 }
 
 function stickBall() {
-  ballLista[0].obj.position.set(pad.position.x, pad.position.y+0.1, 0);
+  ballLista[0].obj.position.set(pad.position.x, pad.position.y+0.2, 0);
   ballLista[0].velocity = ballInicialVelocity;
 } 
 
@@ -735,7 +764,7 @@ function duplicaBola()
       ballLista[0].velocity.clone().applyMatrix4(matrizRotacao)
     ); 
     
-    if(novaBola.velocity.y <0.01)
+    if(Math.abs(novaBola.velocity.y) <0.01)
     {
       var aux = novaBola.velocity.y;
       novaBola.velocity.y =  novaBola.velocity.x;
@@ -817,6 +846,16 @@ function render() {
 
   if (gameStatus == 4) {
     message.changeMessage("You've won!!! Press R to restart!");
+    //Change Nivel
+    if (level == 1) {
+      level = 2;
+      brickHolderX = -0.95;
+    } else {
+      level = 1;
+      brickHolderX = -1.05;
+    }
+    brickHolder.position.set(brickHolderX, 2.2, 0);
+    reset();
   }
 
   requestAnimationFrame(render);
