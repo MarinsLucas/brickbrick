@@ -73,8 +73,6 @@ window.addEventListener(
 );
 scene.add(camera);
 
-scene.add(new THREE.CameraHelper(camera));
-
 //Criar plano de fundo (para as sombras baterem)
 const geometry = new THREE.PlaneGeometry(10, 10);
 const material2 = new THREE.MeshLambertMaterial({
