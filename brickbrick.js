@@ -1,14 +1,12 @@
 import * as THREE from "three";
 import { MathUtils } from "three";
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
+import { CSG } from "../libs/other/CSGMesh.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
-import {CSG} from "../libs/other/CSGMesh.js";
 
-
-class ball{
-  constructor(x, y, velocity)
-  {
+class ball {
+  constructor(x, y, velocity) {
     this.velocity = velocity;
     this.obj = createBall(x, y);
   }
@@ -101,7 +99,9 @@ var brickMatrix = initializeMatrix();
 let pad = createPad();
 collidableMeshList.push(pad);
 let ballLista = [];
-ballLista.push(new ball(pad.position.x, pad.position.y + 0.2, ballInicialVelocity));
+ballLista.push(
+  new ball(pad.position.x, pad.position.y + 0.2, ballInicialVelocity)
+);
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
 
@@ -166,9 +166,7 @@ var message2 = new SecondaryBox("Seremos campões");
 message2.box.style.top = "0";
 message2.box.style.bottom = "";
 
-
 //change the position of the message to the top of the screen
-
 
 render();
 
@@ -176,22 +174,24 @@ render();
 
 function reset() {
   gameStatus = 1;
-  
-  for(let i =ballLista.length-1; i>=0;i--){
+
+  for (let i = ballLista.length - 1; i >= 0; i--) {
     scene.remove(ballLista[i]);
     removeBola(ballLista[i]);
-  } 
+  }
 
-  for(let i =powerUpsList.length-1; i>=0;i--){
+  for (let i = powerUpsList.length - 1; i >= 0; i--) {
     scene.remove(powerUpsList[i]);
   }
   ballLista = [];
   powerUpsList = [];
-  
+
   var inicialVelocity = new THREE.Vector3();
   inicialVelocity.x = 0;
-  inicialVelocity.y = initialSpeed*Math.sin(MathUtils.degToRad(90));
-  ballLista.push(new ball(pad.position.x, pad.position.y+0.2, inicialVelocity));
+  inicialVelocity.y = initialSpeed * Math.sin(MathUtils.degToRad(90));
+  ballLista.push(
+    new ball(pad.position.x, pad.position.y + 0.2, inicialVelocity)
+  );
 
   gameStatus = 3;
   resetBricks();
@@ -305,20 +305,20 @@ function createPad() {
   let cube = new THREE.Mesh(cubeGeometry, material);
   // position the cube
   cube.position.set(0.0, 0.05, 0.0);
-  cube.matrixAutoUpdate = false; 
+  cube.matrixAutoUpdate = false;
   cube.updateMatrix();
 
-  let cylindergeo = new THREE.CylinderGeometry(0.999,0.999,0.1,50,1);
+  let cylindergeo = new THREE.CylinderGeometry(0.999, 0.999, 0.1, 50, 1);
   let cylinder = new THREE.Mesh(cylindergeo, material);
-  cylinder.position.set(0,-0.85,0); 
-  cylinder.matrixAutoUpdate = false; 
-  cylinder.rotateX((MathUtils.degToRad(90))); 
-  cylinder.updateMatrix(); 
-  let cubaogeo = new THREE.BoxGeometry(2,2,1);
+  cylinder.position.set(0, -0.85, 0);
+  cylinder.matrixAutoUpdate = false;
+  cylinder.rotateX(MathUtils.degToRad(90));
+  cylinder.updateMatrix();
+  let cubaogeo = new THREE.BoxGeometry(2, 2, 1);
   let cubao = new THREE.Mesh(cubaogeo, material);
-  cubao.position.set(0,-0.9,0)
+  cubao.position.set(0, -0.9, 0);
   cubao.matrixAutoUpdate = false;
-  cubao.updateMatrix(); 
+  cubao.updateMatrix();
 
   let cubeCSG = CSG.fromMesh(cube);
   let cylinderCSG = CSG.fromMesh(cylinder);
@@ -326,7 +326,7 @@ function createPad() {
   let cylinder_cubao = cylinderCSG.subtract(cubaoCSG);
   let rebatedor_ = cubeCSG.union(cylinder_cubao);
   let rebatedor = CSG.toMesh(rebatedor_, new THREE.Matrix4());
-  rebatedor.material = material; 
+  rebatedor.material = material;
   scene.add(rebatedor);
 
   rebatedor.position.set(0, -2.1, 0);
@@ -452,7 +452,7 @@ function removeBrick(brickName) {
   const brickIndex = collidableMeshList.findIndex(
     (brick) => brick.name === brickName
   );
-  
+
   if (brickIndex !== -1) {
     const removedBrick = collidableMeshList.splice(brickIndex, 1)[0];
     brickHolder.remove(removedBrick);
@@ -465,29 +465,28 @@ function updateBrick(brick) {
   switch (brick.resistance) {
     case 0:
       //obj.position.set(1000, 1000, 1000);
-      brokenBricks += 1; 
+      brokenBricks += 1;
 
       //Bamboleio
-      if(brokenBricks >= 10)
-      { 
-        var position = new THREE.Vector3;
-        obj.getWorldPosition(position); 
+      if (brokenBricks >= 10 && ballLista.length == 1) {
+        var position = new THREE.Vector3();
+        obj.getWorldPosition(position);
 
         //Objeto caindo para o powerup
-        let pu = new THREE.OctahedronGeometry(0.07 , 0);
+        let pu = new THREE.OctahedronGeometry(0.07, 0);
         let pumaterial = new THREE.MeshPhongMaterial({
           color: "rgb(255,255,255)",
           shininess: "0.001",
           specular: "rgb(255,255,255)",
-        }); 
+        });
         var obj2 = new THREE.Mesh(pu, pumaterial);
-        obj2.position.set(position.x,position.y, 0 );
-        obj2.castShadow = true; 
+        obj2.position.set(position.x, position.y, 0);
+        obj2.castShadow = true;
         var light = new THREE.PointLight(0xffffff, 1, 1);
         light.position.set(0, 0, 0);
         obj2.add(light);
         scene.add(obj2);
-        brokenBricks = 0; 
+        brokenBricks = 0;
         powerUpsList.push(obj2);
       }
       removeBrick(obj.name);
@@ -562,14 +561,18 @@ function createBrick(x, y, resistance, brickHolder) {
 
 function updateBall(b) {
   if (gameStatus != 1) return;
-  var bola = b.obj; 
-  var ballVelocity = b.velocity; 
+  var bola = b.obj;
+  var ballVelocity = b.velocity;
   tempoDecorrido = clock.getElapsedTime();
   bola.translateX(ballVelocity.x);
   bola.translateY(ballVelocity.y);
 
   const tbraycaster = new THREE.Raycaster();
-  const tbdirection = new THREE.Vector3(0, 0.07*(Math.abs(ballVelocity.y)/ballVelocity.y), 0);
+  const tbdirection = new THREE.Vector3(
+    0,
+    0.07 * (Math.abs(ballVelocity.y) / ballVelocity.y),
+    0
+  );
 
   tbraycaster.ray.origin.copy(bola.position);
   tbraycaster.ray.direction.copy(tbdirection);
@@ -632,19 +635,16 @@ function updateBall(b) {
         }
       }
     } else if (tbintersects[0]["object"].name == "down") {
-
-      if(ballLista.length > 1)
-      { 
+      if (ballLista.length > 1) {
         removeBola(b);
-        return; 
-      }
-      else {
+        return;
+      } else {
         bola.position.set(pad.position.x, pad.position.y + 0.2, 0);
         gameStatus = 3;
         pad.position.set(0, -2.1, 0);
         ballVelocity.x = 0;
         ballVelocity.y = initialSpeed * Math.sin(MathUtils.degToRad(90));
-        for(let i =powerUpsList.length-1; i>=0;i--){
+        for (let i = powerUpsList.length - 1; i >= 0; i--) {
           scene.remove(powerUpsList[i]);
         }
         powerUpsList = [];
@@ -652,7 +652,11 @@ function updateBall(b) {
     }
   }
 
-  const lrdirection = new THREE.Vector3(0.07*(Math.abs(ballVelocity.x)/ballVelocity.x), 0, 0);
+  const lrdirection = new THREE.Vector3(
+    0.07 * (Math.abs(ballVelocity.x) / ballVelocity.x),
+    0,
+    0
+  );
 
   tbraycaster.ray.origin.copy(bola.position);
   tbraycaster.ray.direction.copy(lrdirection);
@@ -707,7 +711,7 @@ function updateBall(b) {
     }
   }
 
-  bola.velocity = ballVelocity; 
+  bola.velocity = ballVelocity;
 }
 
 function newReflect(v, normal) {
@@ -716,7 +720,7 @@ function newReflect(v, normal) {
   return v.sub(v1.copy(normal).multiplyScalar(2 * v.dot(normal)));
 }
 
-function removeBola(bola){
+function removeBola(bola) {
   // remove bola da lista
   var index = ballLista.indexOf(bola);
   if (index > -1) {
@@ -728,20 +732,18 @@ function removeBola(bola){
 }
 
 function stickBall() {
-  ballLista[0].obj.position.set(pad.position.x, pad.position.y+0.2, 0);
+  ballLista[0].obj.position.set(pad.position.x, pad.position.y + 0.2, 0);
   ballLista[0].velocity = ballInicialVelocity;
-} 
-
-function displaySpeed() {
-  
 }
+
+function displaySpeed() {}
 
 function increaseSpeed(b) {
   var timeSpent = ballClock.getElapsedTime();
   var progress = timeSpent / 15;
 
-  var ballVelocity = b.velocity; 
-  
+  var ballVelocity = b.velocity;
+
   if (progress < 1) {
     speed = initialSpeed + progress * (finalSpeed - initialSpeed);
     var normalized = new THREE.Vector3();
@@ -751,31 +753,27 @@ function increaseSpeed(b) {
   }
 }
 
-function duplicaBola()
-{
- 
-    const matrizRotacao = new THREE.Matrix4();
-    matrizRotacao.makeRotationAxis(new THREE.Vector3(0,0,1), Math.PI/4);
-    var novaBola = new ball(
-      ballLista[0].obj.position.x,
-      ballLista[0].obj.position.y,
-      ballLista[0].velocity.clone().applyMatrix4(matrizRotacao)
-    ); 
-    
-    if(Math.abs(novaBola.velocity.y) <0.01)
-    {
-      var aux = novaBola.velocity.y;
-      novaBola.velocity.y =  novaBola.velocity.x;
-      novaBola.velocity.x = aux;
-    }
-    ballLista.push(novaBola);  
+function duplicaBola() {
+  const matrizRotacao = new THREE.Matrix4();
+  matrizRotacao.makeRotationAxis(new THREE.Vector3(0, 0, 1), Math.PI / 4);
+  var novaBola = new ball(
+    ballLista[0].obj.position.x,
+    ballLista[0].obj.position.y,
+    ballLista[0].velocity.clone().applyMatrix4(matrizRotacao)
+  );
+
+  if (Math.abs(novaBola.velocity.y) < 0.01) {
+    var aux = novaBola.velocity.y;
+    novaBola.velocity.y = novaBola.velocity.x;
+    novaBola.velocity.x = aux;
+  }
+  ballLista.push(novaBola);
 }
 
-function updatePU(pu)
-{
+function updatePU(pu) {
   pu.translateY(-0.015);
   puColor += 500;
-  pu.material.color.setHex(puColor); 
+  pu.material.color.setHex(puColor);
   const tbraycaster = new THREE.Raycaster();
   const tbdirection = new THREE.Vector3(0, -1, 0);
 
@@ -787,31 +785,30 @@ function updatePU(pu)
     tbintersects.length > 0 &&
     tbintersects[0].distance <= 0.05 &&
     tbintersects[0]["object"].name == "Pad"
-  ) 
-  {
+  ) {
     var index = powerUpsList.indexOf(pu);
     if (index > -1) {
       powerUpsList.splice(index, 1);
     }
     scene.remove(pu);
     //BARABARABARA: AUUMENTAR ESSE NÚMERO, PARA AS ESTRELAS
-    if(ballLista.length <= 1)
-      duplicaBola();
-     
+    if (ballLista.length <= 1) duplicaBola();
   }
-  if(tbintersects.length > 0 && tbintersects[0].distance<=0.05 && tbintersects[0]["object"].name == "down") 
-  {
+  if (
+    tbintersects.length > 0 &&
+    tbintersects[0].distance <= 0.05 &&
+    tbintersects[0]["object"].name == "down"
+  ) {
     var index = powerUpsList.indexOf(pu);
     if (index > -1) {
       powerUpsList.splice(index, 1);
     }
     scene.remove(pu);
   }
-
 }
 
 function render() {
-  message2.changeMessage("Speed: " + (speed * 100/2.5).toFixed(4));
+  message2.changeMessage("Speed: " + ((speed * 100) / 2.5).toFixed(4));
 
   if (gameStatus == 0) {
     stickBall();
@@ -819,15 +816,13 @@ function render() {
   }
 
   if (gameStatus == 1) {
-    for(let i =0; i < ballLista.length;i++)
-    {
-      if(ballLista[i]){
-      increaseSpeed(ballLista[i]);
-      updateBall(ballLista[i]);
+    for (let i = 0; i < ballLista.length; i++) {
+      if (ballLista[i]) {
+        increaseSpeed(ballLista[i]);
+        updateBall(ballLista[i]);
+      }
     }
-    }
-    for(let i =0; i<powerUpsList.length;i++)
-    {
+    for (let i = 0; i < powerUpsList.length; i++) {
       updatePU(powerUpsList[i]);
     }
     message.changeMessage("Press Space to pause");
