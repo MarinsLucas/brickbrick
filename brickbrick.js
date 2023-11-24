@@ -4,6 +4,7 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import { CSG } from "../libs/other/CSGMesh.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
+import { DoubleSide } from "../build/three.module.js";
 
 class ball {
   constructor(x, y, velocity) {
@@ -29,6 +30,16 @@ renderer = initRenderer(); // View function in util/utils
 light = new THREE.DirectionalLight(0xffffff, 0.7);
 light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
 light.position.set(2, 5, 10);
+
+//Skybox configuration
+const path = "./assets/skybox/";
+const format = '.jpg';
+const urls = [
+  path + 'posx' + format, path + "negx" + format,
+  path + 'posy' + format, path + 'negy' + format,
+  path + 'posz' + format, path + "negz" + format]; 
+let cubeMapTexture = new THREE.CubeTextureLoader().load(urls); 
+scene.background = cubeMapTexture;
 
 // Shadow settings
 light.castShadow = true;
@@ -61,26 +72,16 @@ var tempoDecorrido = 0;
 // Main camera
 const camera = initializeCamera();
 const auxCamera = initializeCamera();
-scene.background = new THREE.Color(0x00008b);
 window.addEventListener(
   "resize",
   function () {
     onWindowResizeOrthographic(camera, renderer);
   },
   false
-);
+); 
 scene.add(camera);
 
-//Criar plano de fundo (para as sombras baterem)
-const geometry = new THREE.PlaneGeometry(10, 10);
-const material2 = new THREE.MeshLambertMaterial({
-  color: "darkslateblue",
-  side: THREE.DoubleSide,
-});
-const plane = new THREE.Mesh(geometry, material2);
-plane.position.set(0, 0, -0.05);
-plane.receiveShadow = true;
-scene.add(plane);
+
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
@@ -493,7 +494,7 @@ function updateBrick(brick) {
       if (brickHolder.children.length == 0) gameStatus = 4;
       break;
     case 1:
-      brick.color = "red";
+      brick.color = "lightgrey";
       break;
     case 2:
       brick.color = "blue";
@@ -513,14 +514,17 @@ function updateBrick(brick) {
   }
 
   if (brick.resistance != 0) {
+    obj.material.map = null; 
     obj.material.color.setColorName(brick.color);
+    var newmaterial = new THREE.MeshLambertMaterial({color: brick.color, side: THREE.DoubleSide})
+    obj.material = newmaterial; 
+
   }
 }
 
 function createBrick(x, y, resistance, brickHolder) {
   var obj, color;
   var geometry = new THREE.BoxGeometry(0.2, 0.1, 0.1);
-
   switch (resistance) {
     case 1:
       color = "red";
@@ -539,14 +543,30 @@ function createBrick(x, y, resistance, brickHolder) {
       break;
     case 6:
       color = "lightgrey";
+      var textureLoader = new THREE.TextureLoader();
+      var bricktexture = textureLoader.load('./assets/steel.png');
+
+      var brickmaterial = new THREE.MeshLambertMaterial();
+      brickmaterial.map = bricktexture;
+
+      var obj = new THREE.Mesh(geometry, material);
+      obj.castShadow = true;
+      obj.name = "brick";
+      obj.position.set(x, y, 0);
+      brickHolder.add(obj);
+      collidableMeshList.push(obj);
+      obj.material = brickmaterial;
+      
+      const brick = new Brick(obj, resistance, color);
+      return brick;
       break;
     case 7:
       color = "white";
       break;
   }
   var material = new THREE.MeshLambertMaterial({
-    color: color,
     side: THREE.DoubleSide,
+    color: color
   });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
@@ -627,7 +647,7 @@ function updateBall(b) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
-              brickMatrix[i][j].resistance = 1;
+              brickMatrix[i][j].resistance = 1; //tubaina
             else brickMatrix[i][j].resistance = 0;
             updateBrick(brickMatrix[i][j]);
             return;

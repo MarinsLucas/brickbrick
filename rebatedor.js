@@ -8,7 +8,8 @@ import {initRenderer,
         onWindowResize,
       } from "../libs/util/util.js";
 import {CSG} from "../libs/other/CSGMesh.js";
-import { MathUtils } from '../build/three.module.js';
+import { Color, MathUtils, ObjectLoader, TextureLoader } from '../build/three.module.js';
+import {OBJLoader} from '../build/jsm/loaders/OBJLoader.js'
 
 let scene, renderer, light, orbit;; // Initial variables
 scene = new THREE.Scene();    // Create main scene
@@ -67,6 +68,30 @@ rebatedor.material = new THREE.MeshLambertMaterial({
 });
 scene.add(rebatedor);
 
+const loader = new OBJLoader();
+loader.load(
+  "./assets/nave/Files/OBJ/AirShip.obj", 
+  function(object){
+    var txtloader = new THREE.TextureLoader();
+    var texture = txtloader.load("./assets/nave/Files/DAE/Aircraft_Texture.png");
+    var material = new THREE.MeshLambertMaterial({map:texture});
+    object.traverse(function(child)
+    {
+      if(child instanceof THREE.Mesh)
+      {
+        child.material = material;
+      }
+    });
+    scene.add(object);
+  },
+  function(xhr){
+    console.log("Progresso");
+  },
+  function(error)
+  {
+    console.log(error);
+  }
+);
 //FIM DA FUNÇÃO CREATE PAD DO JOGO
 //Alguns detalhes que  não implementamos nesse código e implementamos no código do jogo:
 //Cast shadow, o nome do objeto (já que nesse código não seria necessário), posição inicial do objeto no jogo.
