@@ -4,7 +4,6 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import { CSG } from "../libs/other/CSGMesh.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
-import { DoubleSide } from "../build/three.module.js";
 
 class ball {
   constructor(x, y, velocity) {
@@ -13,6 +12,7 @@ class ball {
   }
 }
 
+let lives = 5;
 let puColor = 0xff0000;
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu ; 4 = ganhou
 let initialSpeed = 0.025,
@@ -33,12 +33,16 @@ light.position.set(2, 5, 10);
 
 //Skybox configuration
 const path = "./assets/skybox/";
-const format = '.jpg';
+const format = ".jpg";
 const urls = [
-  path + 'posx' + format, path + "negx" + format,
-  path + 'posy' + format, path + 'negy' + format,
-  path + 'posz' + format, path + "negz" + format]; 
-let cubeMapTexture = new THREE.CubeTextureLoader().load(urls); 
+  path + "posx" + format,
+  path + "negx" + format,
+  path + "posy" + format,
+  path + "negy" + format,
+  path + "posz" + format,
+  path + "negz" + format,
+];
+let cubeMapTexture = new THREE.CubeTextureLoader().load(urls);
 scene.background = cubeMapTexture;
 
 // Shadow settings
@@ -78,10 +82,8 @@ window.addEventListener(
     onWindowResizeOrthographic(camera, renderer);
   },
   false
-); 
+);
 scene.add(camera);
-
-
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
 
@@ -91,10 +93,14 @@ let brickHolderX;
 
 if (level == 1) brickHolderX = -1.05;
 if (level == 2) brickHolderX = -0.95;
+if (level == 3) brickHolderX = -1.05;
 brickHolder.position.set(brickHolderX, 2.2, 0);
 scene.add(brickHolder);
 
 createBorders();
+
+let vidaLista = [];
+createVidas();
 
 var brickMatrix = initializeMatrix();
 let pad = createPad();
@@ -140,6 +146,9 @@ document.addEventListener("keydown", (event) => {
     if (level == 1) {
       level = 2;
       brickHolderX = -0.95;
+    } else if (level == 2) {
+      level = 3;
+      brickHolderX = -1.05;
     } else {
       level = 1;
       brickHolderX = -1.05;
@@ -186,6 +195,7 @@ function reset() {
   }
   ballLista = [];
   powerUpsList = [];
+  vidaLista = [];
 
   var inicialVelocity = new THREE.Vector3();
   inicialVelocity.x = 0;
@@ -193,6 +203,9 @@ function reset() {
   ballLista.push(
     new ball(pad.position.x, pad.position.y + 0.2, inicialVelocity)
   );
+
+  lives = 5;
+  createVidas();
 
   gameStatus = 3;
   resetBricks();
@@ -360,12 +373,27 @@ function chooseLevel(level) {
     3,5,4,1,3,5,2,6,3,5,4,1,3,5
     5,3,1,4,5,3,6,1,5,3,1,4,5,3
     4,1,3,5,2,6,3,5,4,1,3,5,2,6
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0
     3,5,2,6,3,5,4,1,3,5,2,6,3,5
     5,3,6,2,5,3,1,4,5,3,6,2,5,3
     2,6,3,5,4,1,3,5,2,6,3,5,4,1
     6,2,5,3,1,4,5,3,6,2,5,3,1,4
+    `;
+  } else if (level == 3) {
+    matrixString = `
+    2,2,2,2,2,2,2,2,2,3,2
+    0,0,0,0,0,0,0,0,0,0,0
+    1,1,1,1,3,1,1,1,1,7,1
+    0,0,0,3,0,0,0,0,0,0,0
+    5,5,5,7,5,5,5,5,5,7,5
+    0,0,0,3,0,0,0,0,0,0,0
+    5,5,5,7,5,5,5,5,5,7,5
+    0,0,0,3,0,0,0,0,0,0,0
+    1,1,1,7,1,1,1,1,1,7,1
+    0,0,0,0,0,0,0,0,0,0,0
+    2,2,2,2,2,2,2,2,2,3,2
+
     `;
   }
 
@@ -398,7 +426,7 @@ function initializeMatrix() {
       brickMatrix[i][j].obj.name = a;
       brickMatrix[i][j].id = a;
 
-      if (brickMatrix[i][j].resistance == 7)
+      if (brickMatrix[i][j].resistance == 0)
         removeBrick(brickMatrix[i][j].obj.name);
 
       a++;
@@ -410,7 +438,7 @@ function initializeMatrix() {
 
 function initializeCamera() {
   //let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
-  let w = window.innerHeight / 2;
+  let w = window.innerWidth;
   let h = window.innerHeight;
   let camera = new THREE.PerspectiveCamera(60, w / h, 0.01, 10); //fov, aspect, near, far
   let aspect = 0.5;
@@ -432,7 +460,7 @@ function initializeCamera() {
 }
 
 function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
-  let w = window.innerHeight / 2;
+  let w = window.innerWidth;
   let h = window.innerHeight;
   let aspect = 0.5;
   let f = frustumSize;
@@ -445,7 +473,7 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
     camera.top = f / 2;
     camera.bottom = -f / 2;
   }
-  camera.updateProjectionMatrix();
+  //  camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
 
@@ -511,14 +539,19 @@ function updateBrick(brick) {
     case 6:
       brick.color = "lightgrey";
       break;
+    case 7:
+      brick.color = "yellow";
+      break;
   }
 
   if (brick.resistance != 0) {
-    obj.material.map = null; 
+    obj.material.map = null;
     obj.material.color.setColorName(brick.color);
-    var newmaterial = new THREE.MeshLambertMaterial({color: brick.color, side: THREE.DoubleSide})
-    obj.material = newmaterial; 
-
+    var newmaterial = new THREE.MeshLambertMaterial({
+      color: brick.color,
+      side: THREE.DoubleSide,
+    });
+    obj.material = newmaterial;
   }
 }
 
@@ -544,7 +577,7 @@ function createBrick(x, y, resistance, brickHolder) {
     case 6:
       color = "lightgrey";
       var textureLoader = new THREE.TextureLoader();
-      var bricktexture = textureLoader.load('./assets/steel.png');
+      var bricktexture = textureLoader.load("./assets/steel.png");
 
       var brickmaterial = new THREE.MeshLambertMaterial();
       brickmaterial.map = bricktexture;
@@ -556,17 +589,17 @@ function createBrick(x, y, resistance, brickHolder) {
       brickHolder.add(obj);
       collidableMeshList.push(obj);
       obj.material = brickmaterial;
-      
+
       const brick = new Brick(obj, resistance, color);
       return brick;
       break;
     case 7:
-      color = "white";
+      color = "yellow";
       break;
   }
   var material = new THREE.MeshLambertMaterial({
     side: THREE.DoubleSide,
-    color: color
+    color: color,
   });
   material.side = THREE.DoubleSide;
   var obj = new THREE.Mesh(geometry, material);
@@ -659,6 +692,7 @@ function updateBall(b) {
         removeBola(b);
         return;
       } else {
+        removeVida(vidaLista[0]);
         bola.position.set(pad.position.x, pad.position.y + 0.2, 0);
         gameStatus = 3;
         pad.position.set(0, -2.1, 0);
@@ -738,6 +772,33 @@ function newReflect(v, normal) {
   var v1 = new THREE.Vector3();
 
   return v.sub(v1.copy(normal).multiplyScalar(2 * v.dot(normal)));
+}
+
+function createVidas() {
+  vidaLista = [];
+
+  for (let index = 0; index < 5; index++) {
+    vidaLista.push(
+      new ball(2.1 - index * 0.15, 2.3, new THREE.Vector3(0, 0, 0))
+    );
+  }
+}
+
+function removeVida(bola) {
+  lives -= 1;
+
+  console.log(bola);
+
+  var index = vidaLista.indexOf(bola);
+  if (index > -1) {
+    vidaLista.splice(index, 1);
+  }
+
+  scene.remove(bola.obj);
+
+  if (lives == 0) {
+    reset();
+  }
 }
 
 function removeBola(bola) {
@@ -828,7 +889,8 @@ function updatePU(pu) {
 }
 
 function render() {
-  message2.changeMessage("Speed: " + ((speed * 100) / 2.5).toFixed(4));
+  //message2.changeMessage("Speed: " + ((speed * 100) / 2.5).toFixed(4));
+  message2.changeMessage("Lives: " + lives);
 
   if (gameStatus == 0) {
     stickBall();
@@ -863,6 +925,9 @@ function render() {
     if (level == 1) {
       level = 2;
       brickHolderX = -0.95;
+    } else if (level == 2) {
+      level = 3;
+      brickHolderX = -1.05;
     } else {
       level = 1;
       brickHolderX = -1.05;
@@ -876,7 +941,7 @@ function render() {
 }
 
 function createBorders() {
-  let upBorder = new THREE.BoxGeometry(3, 0.1, 0.2);
+  let upBorder = new THREE.BoxGeometry(2.5, 0.1, 0.2);
   let borderMaterial = new THREE.MeshLambertMaterial({
     color: "darkslateblue",
     side: THREE.DoubleSide,
@@ -905,7 +970,7 @@ function createBorders() {
   scene.add(rb);
   collidableMeshList.push(rb);
 
-  let downBorder = new THREE.BoxGeometry(3, 0.1, 0.2);
+  let downBorder = new THREE.BoxGeometry(2.5, 0.1, 0.2);
   let db = new THREE.Mesh(downBorder, borderMaterial);
   db.position.set(0.0, -2.55, 0.0);
   db.name = "down";
