@@ -24,7 +24,7 @@ let level = 1;
 let rows = 0;
 let cols = 0;
 let brokenBricks = 0;
-
+let aspect; 
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
@@ -458,7 +458,7 @@ function initializeCamera() {
   let w = window.innerWidth;
   let h = window.innerHeight;
   let camera = new THREE.PerspectiveCamera(60, w / h, 1, 7.7); //fov, aspect, near, far
-  let aspect = 0.5;
+  aspect = w/h;
   let f = 5;
   camera.position.set(0, 0, 5.3);
   camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -479,7 +479,7 @@ function initializeCamera() {
 function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
   let w = window.innerWidth;
   let h = window.innerHeight;
-  let aspect = 0.5;
+  //let aspect = 0.5;
   let f = frustumSize;
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = aspect;
@@ -491,7 +491,7 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
     camera.bottom = -f / 2;
   }
   //  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
+  renderer.setSize(w, w/2);
 }
 
 function removeBrick(brickName) {
