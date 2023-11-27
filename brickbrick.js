@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { MathUtils } from "three";
+import { OrbitControls } from "../build/jsm/controls/OrbitControls.js";
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
+import { GLTFLoader } from "../build/jsm/loaders/GLTFLoader.js";
 import { CSG } from "../libs/other/CSGMesh.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
-import { SecondaryBox, initRenderer } from "../libs/util/util.js";
-import {GLTFLoader} from '../build/jsm/loaders/GLTFLoader.js'
+import { InfoBox, SecondaryBox, initRenderer } from "../libs/util/util.js";
 
 class ball {
   constructor(x, y, velocity) {
@@ -24,7 +25,7 @@ let level = 1;
 let rows = 0;
 let cols = 0;
 let brokenBricks = 0;
-let aspect; 
+let aspect;
 let scene, renderer, light, keyboard;
 scene = new THREE.Scene(); // Create main scene
 renderer = initRenderer(); // View function in util/utils
@@ -158,6 +159,12 @@ document.addEventListener("keydown", (event) => {
     reset();
   }
 
+  if (event.code == "KeyO") {
+    // Orbit Controls
+    orbitFlag = !orbitFlag;
+    orbit.enabled = orbitFlag;
+  }
+
   if (event.code == "Enter") {
     var element = document.querySelector("#webgl-output");
     element.requestFullscreen();
@@ -178,6 +185,19 @@ message2.box.style.top = "0";
 message2.box.style.bottom = "";
 
 //change the position of the message to the top of the screen
+
+var orbitFlag = false;
+var orbit = new OrbitControls(camera, renderer.domElement);
+orbit.enabled = false;
+// Use this to show information onscreen
+let controls = new InfoBox();
+controls.add("Basic Scene");
+controls.addParagraph();
+controls.add("Use mouse to interact:");
+controls.add("* Left button to rotate");
+controls.add("* Right button to translate (pan)");
+controls.add("* Scroll to zoom in/out.");
+controls.show();
 
 render();
 
@@ -348,20 +368,18 @@ function createPad() {
   rebatedor.castShadow = true;
   rebatedor.name = "Pad";
   scene.add(rebatedor);
-  var loader = new GLTFLoader(); 
-  loader.load("./assets/nave/AirShip.glb", function(gltf){
-
+  var loader = new GLTFLoader();
+  loader.load("./assets/nave/AirShip.glb", function (gltf) {
     var obj = gltf.scene;
-    obj.traverse(function(child){
-      if(child.isMesh) child.castShadow = true;
+    obj.traverse(function (child) {
+      if (child.isMesh) child.castShadow = true;
       if (child.material) child.material.side = THREE.DoubleSide;
     });
     rebatedor.add(obj);
-    obj.position.set(0,-0.3,-0.2);
-    obj.scale.set(0.05,0.05,0.05);
+    obj.position.set(0, -0.3, -0.2);
+    obj.scale.set(0.05, 0.05, 0.05);
     obj.rotateX(MathUtils.degToRad(-90));
-    obj.rotateZ(MathUtils.degToRad(180))
-
+    obj.rotateZ(MathUtils.degToRad(180));
   });
 
   return rebatedor;
@@ -458,7 +476,7 @@ function initializeCamera() {
   let w = window.innerWidth;
   let h = window.innerHeight;
   let camera = new THREE.PerspectiveCamera(60, w / h, 1, 7.7); //fov, aspect, near, far
-  aspect = w/h;
+  aspect = w / h;
   let f = 5;
   camera.position.set(0, 0, 5.3);
   camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -491,7 +509,7 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
     camera.bottom = -f / 2;
   }
   //  camera.updateProjectionMatrix();
-  renderer.setSize(w, w/2);
+  renderer.setSize(w, w / 2);
 }
 
 function removeBrick(brickName) {
@@ -700,8 +718,8 @@ function updateBall(b) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
               brickMatrix[i][j].resistance = 1; //tubaina
-            else if(brickMatrix[i][j].resistance != 7)
-               brickMatrix[i][j].resistance = 0;
+            else if (brickMatrix[i][j].resistance != 7)
+              brickMatrix[i][j].resistance = 0;
             updateBrick(brickMatrix[i][j]);
             return;
           }
@@ -912,6 +930,17 @@ function render() {
   //message2.changeMessage("Speed: " + ((speed * 100) / 2.5).toFixed(4));
   message2.changeMessage("Lives: " + lives);
 
+  if (orbitFlag == true) {
+    orbit.enabled = true;
+    controls.infoBox.style.display = "block";
+  }
+
+  if (orbitFlag == false) {
+    orbit.enabled = false;
+    orbit.reset();
+    controls.infoBox.style.display = "none";
+  }
+
   if (gameStatus == 0) {
     stickBall();
     message.changeMessage("Press Space and then Left Click to start");
@@ -967,6 +996,8 @@ function createBorders() {
     side: THREE.DoubleSide,
   });
   borderMaterial.side = THREE.DoubleSide;
+
+  
   let upb = new THREE.Mesh(upBorder, borderMaterial);
   upb.castShadow = true;
   upb.position.set(0.0, 2.5, 0.0);
@@ -974,7 +1005,7 @@ function createBorders() {
   scene.add(upb);
   collidableMeshList.push(upb);
 
-  let leftBorder = new THREE.BoxGeometry(0.1, 10, 0.2);
+  let leftBorder = new THREE.BoxGeometry(0.1, 5.1, 0.2);
   let lb = new THREE.Mesh(leftBorder, borderMaterial);
   lb.castShadow = true;
   lb.position.set(-1.25, 0.0, 0.0);
@@ -982,19 +1013,19 @@ function createBorders() {
   scene.add(lb);
   collidableMeshList.push(lb);
 
-  let rightBorder = new THREE.BoxGeometry(0.1, 10, 0.2);
+  let rightBorder = new THREE.BoxGeometry(0.1, 5.1, 0.2);
   let rb = new THREE.Mesh(rightBorder, borderMaterial);
   rb.castShadow;
   rb.position.set(1.25, 0.0, 0.0);
   rb.name = "right";
   scene.add(rb);
   collidableMeshList.push(rb);
-  
+
   //!Tem que tirar isso até o final do trabalho!!
-  let downBorderMaterial = new THREE.Material(); 
-  downBorderMaterial.transparent = true; 
+  let downBorderMaterial = new THREE.Material();
+  downBorderMaterial.transparent = true;
   let downBorder = new THREE.BoxGeometry(2.5, 0.1, 0.2);
-  let db = new THREE.Mesh(downBorder,  downBorderMaterial);
+  let db = new THREE.Mesh(downBorder, downBorderMaterial);
   db.position.set(0.0, -2.55, 0.0);
   db.name = "down";
   scene.add(db);
