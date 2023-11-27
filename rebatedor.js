@@ -9,7 +9,7 @@ import {initRenderer,
       } from "../libs/util/util.js";
 import {CSG} from "../libs/other/CSGMesh.js";
 import { Color, MathUtils, ObjectLoader, TextureLoader } from '../build/three.module.js';
-import {OBJLoader} from '../build/jsm/loaders/OBJLoader.js'
+import {GLTFLoader} from '../build/jsm/loaders/GLTFLoader.js'
 
 let scene, renderer, light, orbit;; // Initial variables
 scene = new THREE.Scene();    // Create main scene
@@ -28,7 +28,6 @@ window.addEventListener( 'resize', function(){onWindowResize(camera, renderer)},
 // Show axes (parameter is size of each axis)
 let axesHelper = new THREE.AxesHelper( 12 );
 scene.add( axesHelper );
-
 
 // create a cube
 
@@ -68,30 +67,21 @@ rebatedor.material = new THREE.MeshLambertMaterial({
 });
 scene.add(rebatedor);
 
-const loader = new OBJLoader();
-loader.load(
-  "./assets/nave/Files/OBJ/AirShip.obj", 
-  function(object){
-    var txtloader = new THREE.TextureLoader();
-    var texture = txtloader.load("./assets/nave/Files/DAE/Aircraft_Texture.png");
-    var material = new THREE.MeshLambertMaterial({map:texture});
-    object.traverse(function(child)
-    {
-      if(child instanceof THREE.Mesh)
-      {
-        child.material = material;
-      }
-    });
-    scene.add(object);
-  },
-  function(xhr){
-    console.log("Progresso");
-  },
-  function(error)
-  {
-    console.log(error);
-  }
-);
+var loader = new GLTFLoader(); 
+loader.load("./assets/nave/AirShip.glb", function(gltf){
+
+  var obj = gltf.scene;
+  obj.traverse(function(child){
+    if(child.isMesh) child.castShadow = true;
+    if (child.material) child.material.side = THREE.DoubleSide;
+  });
+  rebatedor.add(obj);
+  obj.position.set(0,-0.5,-0.2);
+  obj.scale.set(0.1,0.1,0.1);
+  obj.rotateX(MathUtils.degToRad(-90));
+  obj.rotateZ(MathUtils.degToRad(180))
+
+});
 //FIM DA FUNÇÃO CREATE PAD DO JOGO
 //Alguns detalhes que  não implementamos nesse código e implementamos no código do jogo:
 //Cast shadow, o nome do objeto (já que nesse código não seria necessário), posição inicial do objeto no jogo.

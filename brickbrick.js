@@ -4,6 +4,7 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import { CSG } from "../libs/other/CSGMesh.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
 import { SecondaryBox, initRenderer } from "../libs/util/util.js";
+import {GLTFLoader} from '../build/jsm/loaders/GLTFLoader.js'
 
 class ball {
   constructor(x, y, velocity) {
@@ -347,6 +348,22 @@ function createPad() {
   rebatedor.castShadow = true;
   rebatedor.name = "Pad";
   scene.add(rebatedor);
+  var loader = new GLTFLoader(); 
+  loader.load("./assets/nave/AirShip.glb", function(gltf){
+
+    var obj = gltf.scene;
+    obj.traverse(function(child){
+      if(child.isMesh) child.castShadow = true;
+      if (child.material) child.material.side = THREE.DoubleSide;
+    });
+    rebatedor.add(obj);
+    obj.position.set(0,-0.3,-0.2);
+    obj.scale.set(0.05,0.05,0.05);
+    obj.rotateX(MathUtils.degToRad(-90));
+    obj.rotateZ(MathUtils.degToRad(180))
+
+  });
+
   return rebatedor;
 }
 
@@ -384,7 +401,7 @@ function chooseLevel(level) {
     matrixString = `
     2,2,2,2,2,2,2,2,2,3,2
     0,0,0,0,0,0,0,0,0,0,0
-    1,1,1,1,3,1,1,1,1,7,1
+    1,1,1,7,1,1,1,1,1,7,1
     0,0,0,3,0,0,0,0,0,0,0
     5,5,5,7,5,5,5,5,5,7,5
     0,0,0,3,0,0,0,0,0,0,0
@@ -440,10 +457,10 @@ function initializeCamera() {
   //let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
   let w = window.innerWidth;
   let h = window.innerHeight;
-  let camera = new THREE.PerspectiveCamera(60, w / h, 0.01, 10); //fov, aspect, near, far
+  let camera = new THREE.PerspectiveCamera(60, w / h, 1, 7.7); //fov, aspect, near, far
   let aspect = 0.5;
   let f = 5;
-  camera.position.set(0, 0, 4.3);
+  camera.position.set(0, 0, 5.3);
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = aspect;
@@ -538,9 +555,11 @@ function updateBrick(brick) {
       break;
     case 6:
       brick.color = "lightgrey";
+      return;
       break;
     case 7:
       brick.color = "yellow";
+      return;
       break;
   }
 
@@ -681,7 +700,8 @@ function updateBall(b) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
             if (brickMatrix[i][j].resistance == 6)
               brickMatrix[i][j].resistance = 1; //tubaina
-            else brickMatrix[i][j].resistance = 0;
+            else if(brickMatrix[i][j].resistance != 7)
+               brickMatrix[i][j].resistance = 0;
             updateBrick(brickMatrix[i][j]);
             return;
           }
@@ -969,9 +989,12 @@ function createBorders() {
   rb.name = "right";
   scene.add(rb);
   collidableMeshList.push(rb);
-
+  
+  //!Tem que tirar isso até o final do trabalho!!
+  let downBorderMaterial = new THREE.Material(); 
+  downBorderMaterial.transparent = true; 
   let downBorder = new THREE.BoxGeometry(2.5, 0.1, 0.2);
-  let db = new THREE.Mesh(downBorder, borderMaterial);
+  let db = new THREE.Mesh(downBorder,  downBorderMaterial);
   db.position.set(0.0, -2.55, 0.0);
   db.name = "down";
   scene.add(db);
