@@ -35,7 +35,7 @@ light.position.set(2, 5, 10);
 
 //Skybox configuration
 const path = "./assets/skybox/";
-const format = ".jpg";
+const format = ".png";
 const urls = [
   path + "posx" + format,
   path + "negx" + format,
@@ -376,7 +376,7 @@ function createPad() {
       if (child.material) child.material.side = THREE.DoubleSide;
     });
     rebatedor.add(obj);
-    obj.position.set(0, -0.3, -0.2);
+    obj.position.set(0, -0.24, -0.2);
     obj.scale.set(0.05, 0.05, 0.05);
     obj.rotateX(MathUtils.degToRad(-90));
     obj.rotateZ(MathUtils.degToRad(180));
@@ -475,11 +475,10 @@ function initializeCamera() {
   //let camera = new THREE.OrthographicCamera(-1, 1, 2, -2, 0.01, 10); //alterar valores?
   let w = window.innerWidth;
   let h = window.innerHeight;
-  let camera = new THREE.PerspectiveCamera(60, w / h, 1, 7.7); //fov, aspect, near, far
+  let camera = new THREE.PerspectiveCamera(60, 2, 1, 7.7); //fov, aspect, near, far
   aspect = w / h;
   let f = 5;
-  camera.position.set(0, 0, 5.3);
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  camera.position.set(0, -2.9, 2.5);
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = aspect;
   }
@@ -490,7 +489,7 @@ function initializeCamera() {
     camera.bottom = -f / 2;
   }
   //camera.updateProjectionMatrix(); //?Isso faz o que?
-  renderer.setSize(w, h);
+  renderer.setSize(w, w/2);
   return camera;
 }
 
@@ -938,6 +937,7 @@ function render() {
   if (orbitFlag == false) {
     orbit.enabled = false;
     orbit.reset();
+    camera.lookAt(new THREE.Vector3(0,-1.1,0)); //Scott
     controls.infoBox.style.display = "none";
   }
 
@@ -1005,7 +1005,7 @@ function createBorders() {
   scene.add(upb);
   collidableMeshList.push(upb);
 
-  let leftBorder = new THREE.BoxGeometry(0.1, 5.1, 0.2);
+  let leftBorder = new THREE.BoxGeometry(0.1, 6, 0.2);
   let lb = new THREE.Mesh(leftBorder, borderMaterial);
   lb.castShadow = true;
   lb.position.set(-1.25, 0.0, 0.0);
@@ -1013,7 +1013,7 @@ function createBorders() {
   scene.add(lb);
   collidableMeshList.push(lb);
 
-  let rightBorder = new THREE.BoxGeometry(0.1, 5.1, 0.2);
+  let rightBorder = new THREE.BoxGeometry(0.1, 6, 0.2);
   let rb = new THREE.Mesh(rightBorder, borderMaterial);
   rb.castShadow;
   rb.position.set(1.25, 0.0, 0.0);
