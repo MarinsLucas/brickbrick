@@ -32,6 +32,32 @@ renderer = initRenderer(); // View function in util/utils
 light = new THREE.DirectionalLight(0xffffff, 0.7);
 light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
 light.position.set(2, 5, 10);
+const listener = new THREE.AudioListener();
+const audioLoader = new THREE.AudioLoader(); 
+const rebatedorSound = new THREE.Audio(listener);
+audioLoader.load('../assets/sounds/rebatedor.mp3', function(buffer){
+  rebatedorSound.setBuffer(buffer);
+  rebatedorSound.setLoop(false);
+  rebatedorSound.setVolume(0.5);
+});
+const bloco1Sound = new THREE.Audio(listener);
+audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
+  bloco1Sound.setBuffer(buffer);
+  bloco1Sound.setLoop(false);
+  bloco1Sound.setVolume(0.5);
+});
+const bloco2Sound = new THREE.Audio(listener);
+audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
+  bloco2Sound.setBuffer(buffer);
+  bloco2Sound.setLoop(false);
+  bloco2Sound.setVolume(0.5);
+});
+const bloco3Sound = new THREE.Audio(listener);
+audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
+  bloco3Sound.setBuffer(buffer);
+  bloco3Sound.setLoop(false);
+  bloco3Sound.setVolume(0.5);
+});
 
 //Skybox configuration
 const path = "./assets/skybox/";
@@ -78,6 +104,7 @@ var tempoDecorrido = 0;
 // Main camera
 const camera = initializeCamera();
 const auxCamera = initializeCamera();
+camera.add(listener);
 window.addEventListener(
   "resize",
   function () {
@@ -708,6 +735,15 @@ function updateBall(b) {
     }
     if (bola.position.y < -2) bola.position.y = -1.8;
     if (ballVelocity.y < 0) ballVelocity.y *= -1;
+
+    //Som do rebatedor
+    let sound = new THREE.Audio(listener);
+    audioLoader.load('../assets/sounds/rebatedor.mp3', function(buffer){
+      sound.setBuffer(buffer);
+      sound.setLoop(false);
+      sound.setVolume(0.5);
+      sound.play();
+    })
   } else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
     if (tbintersects[0]["object"].parent == brickHolder) {
@@ -715,11 +751,38 @@ function updateBall(b) {
       for (let j = 0; j < cols; j++) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
-            if (brickMatrix[i][j].resistance == 6)
-              brickMatrix[i][j].resistance = 1; //tubaina
+            if (brickMatrix[i][j].resistance == 6){
+              brickMatrix[i][j].resistance = 1; 
+              //Som de bloco mais resistente que o normal
+              let sound = new THREE.Audio(listener); 
+              audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+            }
             else if (brickMatrix[i][j].resistance != 7)
+            {
               brickMatrix[i][j].resistance = 0;
+              let sound = new THREE.Audio(listener);
+              audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+            }
             updateBrick(brickMatrix[i][j]);
+            if(brickMatrix[i][j].resistance==7){
+            let sound = new THREE.Audio(listener); 
+            audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
+              sound.setBuffer(buffer);
+              sound.setLoop(false);
+              sound.setVolume(0.5);
+              sound.play();
+            }) 
+          }
             return;
           }
         }
@@ -741,6 +804,16 @@ function updateBall(b) {
         powerUpsList = [];
       }
     }
+    else 
+    {
+      let sound = new THREE.Audio(listener);
+      audioLoader.load('./assets/borders.m4a', function(buffer){
+        sound.setBuffer(buffer);
+        sound.setLoop(false);
+        sound.setVolume(1);
+        sound.play();
+      }) 
+    }
   }
 
   const lrdirection = new THREE.Vector3(
@@ -761,17 +834,43 @@ function updateBall(b) {
       for (let j = 0; j < cols; j++) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
-            if (brickMatrix[i][j].resistance == 6)
-              brickMatrix[i][j].resistance = 1;
-            else brickMatrix[i][j].resistance = 0;
+            if (brickMatrix[i][j].resistance == 6){
+              brickMatrix[i][j].resistance = 1; 
+              //Som de bloco mais resistente que o normal
+              let sound = new THREE.Audio(listener); 
+              audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+            }
+            else if (brickMatrix[i][j].resistance != 7)
+            {
+              brickMatrix[i][j].resistance = 0;
+              let sound = new THREE.Audio(listener);
+              audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+            }
             updateBrick(brickMatrix[i][j]);
-            return;
+            if(brickMatrix[i][j].resistance==7){
+            let sound = new THREE.Audio(listener); 
+            audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
+              sound.setBuffer(buffer);
+              sound.setLoop(false);
+              sound.setVolume(0.5);
+              sound.play();
+            }) 
+            }
           }
         }
       }
     }
-
-    if (rlintersects[0]["object"].name == "Pad" && tempoDecorrido > 0.5) {
+    else if (rlintersects[0]["object"].name == "Pad" && tempoDecorrido > 0.5) {
       tempoDecorrido = 0;
       clock.stop();
       clock.start();
@@ -798,7 +897,18 @@ function updateBall(b) {
         );
 
         if (ballVelocity.x > 0) ballVelocity.x *= -1;
+        rebatedorSound.play(); 
       }
+    }
+    else 
+    {
+      let sound = new THREE.Audio(listener);
+      audioLoader.load('./assets/borders.m4a', function(buffer){
+        sound.setBuffer(buffer);
+        sound.setLoop(false);
+        sound.setVolume(1);
+        sound.play();
+      }) 
     }
   }
 
