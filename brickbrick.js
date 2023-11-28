@@ -4,8 +4,8 @@ import { OrbitControls } from "../build/jsm/controls/OrbitControls.js";
 import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.js";
 import { GLTFLoader } from "../build/jsm/loaders/GLTFLoader.js";
 import { CSG } from "../libs/other/CSGMesh.js";
-import KeyboardState from "../libs/util/KeyboardState.js";
 import { InfoBox, SecondaryBox, initRenderer } from "../libs/util/util.js";
+import { createStartScreen } from "./createStartScreen.js";
 
 class ball {
   constructor(x, y, velocity) {
@@ -14,6 +14,16 @@ class ball {
   }
 }
 
+var currentScene, currentCamera;
+var startScreen = new createStartScreen();
+var initialScene = startScreen.scene;
+var initCamera = startScreen.camera;
+
+// Scene variables
+var scene = new THREE.Scene(); // Create main scene
+var renderer = initRenderer(); // View function in util/utils
+
+// Gameplay variables
 let lives = 5;
 let puColor = 0xff0000;
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu ; 4 = ganhou
@@ -26,38 +36,18 @@ let rows = 0;
 let cols = 0;
 let brokenBricks = 0;
 let aspect;
-let scene, renderer, light, keyboard;
-scene = new THREE.Scene(); // Create main scene
-renderer = initRenderer(); // View function in util/utils
-light = new THREE.DirectionalLight(0xffffff, 0.7);
-light.castShadow = true; //?Não sei oq isso faz, fiquei com preguiça de ler
-light.position.set(2, 5, 10);
+let light, light2;
+let dh = 0.21; //delta de
+const clock = new THREE.Clock();
+var tempoDecorrido = 0;
+
+// Audio variables
 const listener = new THREE.AudioListener();
-const audioLoader = new THREE.AudioLoader(); 
+const audioLoader = new THREE.AudioLoader();
 const rebatedorSound = new THREE.Audio(listener);
-audioLoader.load('../assets/sounds/rebatedor.mp3', function(buffer){
-  rebatedorSound.setBuffer(buffer);
-  rebatedorSound.setLoop(false);
-  rebatedorSound.setVolume(0.5);
-});
-const bloco1Sound = new THREE.Audio(listener);
-audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
-  bloco1Sound.setBuffer(buffer);
-  bloco1Sound.setLoop(false);
-  bloco1Sound.setVolume(0.5);
-});
-const bloco2Sound = new THREE.Audio(listener);
-audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
-  bloco2Sound.setBuffer(buffer);
-  bloco2Sound.setLoop(false);
-  bloco2Sound.setVolume(0.5);
-});
-const bloco3Sound = new THREE.Audio(listener);
-audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
-  bloco3Sound.setBuffer(buffer);
-  bloco3Sound.setLoop(false);
-  bloco3Sound.setVolume(0.5);
-});
+
+handleAudio();
+handleLights();
 
 //Skybox configuration
 const path = "./assets/skybox/";
@@ -73,45 +63,19 @@ const urls = [
 let cubeMapTexture = new THREE.CubeTextureLoader().load(urls);
 scene.background = cubeMapTexture;
 
-// Shadow settings
-light.castShadow = true;
-light.shadow.mapSize.width = 2048;
-light.shadow.mapSize.height = 2048;
-light.shadow.camera.near = 1;
-light.shadow.camera.far = 20;
-light.shadow.camera.left = -5;
-light.shadow.camera.right = 5;
-light.shadow.camera.top = 5;
-light.shadow.camera.bottom = -5;
-light.shadowDarkness = 0.5;
-scene.add(light);
-
-scene.add(light.target);
-light.target.position.set(0, -2, 0);
-
-let light2 = new THREE.AmbientLight(0xffffff, 0.3);
-scene.add(light2);
-
-keyboard = new KeyboardState();
 var ballInicialVelocity = new THREE.Vector3(
   0,
   speed * Math.sin(MathUtils.degToRad(90)),
   0
 );
-let dh = 0.21; //delta de
-const clock = new THREE.Clock();
-var tempoDecorrido = 0;
-// Main camera
-const camera = initializeCamera();
-const auxCamera = initializeCamera();
+
+// Camera variables
+var camera, auxCamera;
+camera = initializeCamera();
+auxCamera = initializeCamera();
+
 camera.add(listener);
-window.addEventListener(
-  "resize",
-  function () {
-    onWindowResizeOrthographic(camera, renderer);
-  },
-  false
-);
+
 scene.add(camera);
 
 const playerControls = new PointerLockControls(auxCamera, renderer.domElement);
@@ -120,11 +84,7 @@ let collidableMeshList = [];
 let brickHolder = new THREE.Object3D();
 let brickHolderX;
 
-if (level == 1) brickHolderX = -1.05;
-if (level == 2) brickHolderX = -0.95;
-if (level == 3) brickHolderX = -1.05;
-brickHolder.position.set(brickHolderX, 2.2, 0);
-scene.add(brickHolder);
+handleBrickHolder();
 
 createBorders();
 
@@ -133,102 +93,195 @@ createVidas();
 
 var brickMatrix = initializeMatrix();
 let pad = createPad();
-collidableMeshList.push(pad);
 let ballLista = [];
+collidableMeshList.push(pad);
 ballLista.push(
   new ball(pad.position.x, pad.position.y + 0.2, ballInicialVelocity)
 );
 // Boolean flag to track whether the pointer is locked
 let isPointerLocked = false;
 
-scene.add(camera);
 let powerUpsList = [];
 
-document.addEventListener("click", function (event) {
-  if (event.button === 0) {
-    if ((gameStatus == 3 || gameStatus == 0) && isPointerLocked) {
-      ballClock.start();
-      gameStatus = 1;
-    }
-  }
-});
+handleEvents();
 
-document.addEventListener("keydown", (event) => {
-  if (event.code === "Space") {
-    if (gameStatus != 3 && gameStatus != 4) {
-      if (isPointerLocked) {
-        ballClock.stop();
-        gameStatus = 2;
-      } else if (gameStatus != 0) {
-        ballClock.running = true;
-        gameStatus = 1;
-      }
-    }
-    togglePointerLock();
-  }
-
-  if (event.code == "KeyR") {
-    if (gameStatus != 0) reset();
-  }
-
-  if (event.code == "KeyG") {
-    if (level == 1) {
-      level = 2;
-      brickHolderX = -0.95;
-    } else if (level == 2) {
-      level = 3;
-      brickHolderX = -1.05;
-    } else {
-      level = 1;
-      brickHolderX = -1.05;
-    }
-    brickHolder.position.set(brickHolderX, 2.2, 0);
-    reset();
-  }
-
-  if (event.code == "KeyO") {
-    // Orbit Controls
-    orbitFlag = !orbitFlag;
-    orbit.enabled = orbitFlag;
-  }
-
-  if (event.code == "Enter") {
-    var element = document.querySelector("#webgl-output");
-    element.requestFullscreen();
-  }
-});
-
-// Handle the pointer lock change event to update isPointerLocked flag
-playerControls.addEventListener("lock", () => {
-  isPointerLocked = true;
-});
-
-playerControls.addEventListener("unlock", () => {
-  isPointerLocked = false;
-});
 var message = new SecondaryBox("");
-var message2 = new SecondaryBox("Seremos campões");
+var message2 = new SecondaryBox("");
 message2.box.style.top = "0";
 message2.box.style.bottom = "";
 
-//change the position of the message to the top of the screen
+var orbitFlag, orbit, controls;
+handleOrbit();
 
-var orbitFlag = false;
-var orbit = new OrbitControls(camera, renderer.domElement);
-orbit.enabled = false;
-// Use this to show information onscreen
-let controls = new InfoBox();
-controls.add("Basic Scene");
-controls.addParagraph();
-controls.add("Use mouse to interact:");
-controls.add("* Left button to rotate");
-controls.add("* Right button to translate (pan)");
-controls.add("* Scroll to zoom in/out.");
-controls.show();
+currentScene = initialScene;
+currentCamera = initCamera;
+
+document.getElementById("start-button").addEventListener("click", function () {
+  currentScene = scene;
+  currentCamera = camera;
+  document.getElementById("start-button").style.display = "none";
+});
+
+console.log(initialScene);
 
 render();
 
 /* ------------------ FUNCTIONS ------------------ */
+
+function render() {
+  requestAnimationFrame(render);
+
+  updateGameplay(); // Implement your gameplay logic here
+  renderer.render(currentScene, currentCamera); // Render the gameplay scene
+}
+
+function handleOrbit() {
+  orbitFlag = false;
+  orbit = new OrbitControls(camera, renderer.domElement);
+  orbit.enabled = false;
+  // Use this to show information onscreen
+  controls = new InfoBox();
+  controls.add("Basic Scene");
+  controls.addParagraph();
+  controls.add("Use mouse to interact:");
+  controls.add("* Left button to rotate");
+  controls.add("* Right button to translate (pan)");
+  controls.add("* Scroll to zoom in/out.");
+  controls.show();
+}
+
+function handleEvents() {
+  window.addEventListener(
+    "resize",
+    function () {
+      onWindowResizeOrthographic(camera, renderer);
+    },
+    false
+  );
+
+  document.addEventListener("click", function (event) {
+    if (event.button === 0) {
+      if ((gameStatus == 3 || gameStatus == 0) && isPointerLocked) {
+        ballClock.start();
+        gameStatus = 1;
+      }
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.code === "Space") {
+      if (gameStatus != 3 && gameStatus != 4) {
+        if (isPointerLocked) {
+          ballClock.stop();
+          gameStatus = 2;
+        } else if (gameStatus != 0) {
+          ballClock.running = true;
+          gameStatus = 1;
+        }
+      }
+      togglePointerLock();
+    }
+
+    if (event.code == "KeyR") {
+      if (gameStatus != 0) reset();
+    }
+
+    if (event.code == "KeyG") {
+      if (level == 1) {
+        level = 2;
+        brickHolderX = -0.95;
+      } else if (level == 2) {
+        level = 3;
+        brickHolderX = -1.05;
+      } else {
+        level = 1;
+        brickHolderX = -1.05;
+      }
+      brickHolder.position.set(brickHolderX, 2.2, 0);
+      reset();
+    }
+
+    if (event.code == "KeyO") {
+      // Orbit Controls
+      orbitFlag = !orbitFlag;
+      orbit.enabled = orbitFlag;
+    }
+
+    if (event.code == "Enter") {
+      var element = document.querySelector("#webgl-output");
+      element.requestFullscreen();
+    }
+  });
+
+  // Handle the pointer lock change event to update isPointerLocked flag
+  playerControls.addEventListener("lock", () => {
+    isPointerLocked = true;
+  });
+
+  playerControls.addEventListener("unlock", () => {
+    isPointerLocked = false;
+  });
+}
+
+function handleBrickHolder() {
+  if (level == 1) brickHolderX = -1.05;
+  if (level == 2) brickHolderX = -0.95;
+  if (level == 3) brickHolderX = -1.05;
+  brickHolder.position.set(brickHolderX, 2.2, 0);
+  scene.add(brickHolder);
+}
+
+function handleLights() {
+  light = new THREE.DirectionalLight(0xffffff, 0.7);
+  light.castShadow = true;
+  light.position.set(2, 5, 10);
+
+  // Shadow settings
+  light.castShadow = true;
+  light.shadow.mapSize.width = 2048;
+  light.shadow.mapSize.height = 2048;
+  light.shadow.camera.near = 1;
+  light.shadow.camera.far = 20;
+  light.shadow.camera.left = -5;
+  light.shadow.camera.right = 5;
+  light.shadow.camera.top = 5;
+  light.shadow.camera.bottom = -5;
+  light.shadowDarkness = 0.5;
+  scene.add(light);
+
+  scene.add(light.target);
+  light.target.position.set(0, -2, 0);
+
+  light2 = new THREE.AmbientLight(0xffffff, 0.3);
+
+  scene.add(light2);
+}
+
+function handleAudio() {
+  audioLoader.load("../assets/sounds/rebatedor.mp3", function (buffer) {
+    rebatedorSound.setBuffer(buffer);
+    rebatedorSound.setLoop(false);
+    rebatedorSound.setVolume(0.5);
+  });
+  const bloco1Sound = new THREE.Audio(listener);
+  audioLoader.load("../assets/sounds/bloco1.mp3", function (buffer) {
+    bloco1Sound.setBuffer(buffer);
+    bloco1Sound.setLoop(false);
+    bloco1Sound.setVolume(0.5);
+  });
+  const bloco2Sound = new THREE.Audio(listener);
+  audioLoader.load("../assets/sounds/bloco2.mp3", function (buffer) {
+    bloco2Sound.setBuffer(buffer);
+    bloco2Sound.setLoop(false);
+    bloco2Sound.setVolume(0.5);
+  });
+  const bloco3Sound = new THREE.Audio(listener);
+  audioLoader.load("../assets/sounds/bloco3.mp3", function (buffer) {
+    bloco3Sound.setBuffer(buffer);
+    bloco3Sound.setLoop(false);
+    bloco3Sound.setVolume(0.5);
+  });
+}
 
 function reset() {
   gameStatus = 1;
@@ -516,7 +569,7 @@ function initializeCamera() {
     camera.bottom = -f / 2;
   }
   //camera.updateProjectionMatrix(); //?Isso faz o que?
-  renderer.setSize(w, w/2);
+  renderer.setSize(w, w / 2);
   return camera;
 }
 
@@ -738,12 +791,12 @@ function updateBall(b) {
 
     //Som do rebatedor
     let sound = new THREE.Audio(listener);
-    audioLoader.load('../assets/sounds/rebatedor.mp3', function(buffer){
+    audioLoader.load("../assets/sounds/rebatedor.mp3", function (buffer) {
       sound.setBuffer(buffer);
       sound.setLoop(false);
       sound.setVolume(0.5);
       sound.play();
-    })
+    });
   } else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
     ballVelocity.y *= -1;
     if (tbintersects[0]["object"].parent == brickHolder) {
@@ -751,38 +804,45 @@ function updateBall(b) {
       for (let j = 0; j < cols; j++) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == tbintersects[0]["object"]) {
-            if (brickMatrix[i][j].resistance == 6){
-              brickMatrix[i][j].resistance = 1; 
+            if (brickMatrix[i][j].resistance == 6) {
+              brickMatrix[i][j].resistance = 1;
               //Som de bloco mais resistente que o normal
-              let sound = new THREE.Audio(listener); 
-              audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-              }) 
-            }
-            else if (brickMatrix[i][j].resistance != 7)
-            {
+              let sound = new THREE.Audio(listener);
+              audioLoader.load(
+                "../assets/sounds/bloco2.mp3",
+                function (buffer) {
+                  sound.setBuffer(buffer);
+                  sound.setLoop(false);
+                  sound.setVolume(0.5);
+                  sound.play();
+                }
+              );
+            } else if (brickMatrix[i][j].resistance != 7) {
               brickMatrix[i][j].resistance = 0;
               let sound = new THREE.Audio(listener);
-              audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-              }) 
+              audioLoader.load(
+                "../assets/sounds/bloco1.mp3",
+                function (buffer) {
+                  sound.setBuffer(buffer);
+                  sound.setLoop(false);
+                  sound.setVolume(0.5);
+                  sound.play();
+                }
+              );
             }
             updateBrick(brickMatrix[i][j]);
-            if(brickMatrix[i][j].resistance==7){
-            let sound = new THREE.Audio(listener); 
-            audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
-              sound.setBuffer(buffer);
-              sound.setLoop(false);
-              sound.setVolume(0.5);
-              sound.play();
-            }) 
-          }
+            if (brickMatrix[i][j].resistance == 7) {
+              let sound = new THREE.Audio(listener);
+              audioLoader.load(
+                "../assets/sounds/bloco2.mp3",
+                function (buffer) {
+                  sound.setBuffer(buffer);
+                  sound.setLoop(false);
+                  sound.setVolume(0.5);
+                  sound.play();
+                }
+              );
+            }
             return;
           }
         }
@@ -803,16 +863,14 @@ function updateBall(b) {
         }
         powerUpsList = [];
       }
-    }
-    else 
-    {
+    } else {
       let sound = new THREE.Audio(listener);
-      audioLoader.load('./assets/borders.m4a', function(buffer){
+      audioLoader.load("./assets/borders.m4a", function (buffer) {
         sound.setBuffer(buffer);
         sound.setLoop(false);
         sound.setVolume(1);
         sound.play();
-      }) 
+      });
     }
   }
 
@@ -834,43 +892,52 @@ function updateBall(b) {
       for (let j = 0; j < cols; j++) {
         for (let i = rows - 1; i >= 0; i--) {
           if (brickMatrix[i][j].obj == rlintersects[0]["object"]) {
-            if (brickMatrix[i][j].resistance == 6){
-              brickMatrix[i][j].resistance = 1; 
+            if (brickMatrix[i][j].resistance == 6) {
+              brickMatrix[i][j].resistance = 1;
               //Som de bloco mais resistente que o normal
-              let sound = new THREE.Audio(listener); 
-              audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-              }) 
-            }
-            else if (brickMatrix[i][j].resistance != 7)
-            {
+              let sound = new THREE.Audio(listener);
+              audioLoader.load(
+                "../assets/sounds/bloco2.mp3",
+                function (buffer) {
+                  sound.setBuffer(buffer);
+                  sound.setLoop(false);
+                  sound.setVolume(0.5);
+                  sound.play();
+                }
+              );
+            } else if (brickMatrix[i][j].resistance != 7) {
               brickMatrix[i][j].resistance = 0;
               let sound = new THREE.Audio(listener);
-              audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                sound.play();
-              }) 
+              audioLoader.load(
+                "../assets/sounds/bloco1.mp3",
+                function (buffer) {
+                  sound.setBuffer(buffer);
+                  sound.setLoop(false);
+                  sound.setVolume(0.5);
+                  sound.play();
+                }
+              );
             }
             updateBrick(brickMatrix[i][j]);
-            if(brickMatrix[i][j].resistance==7){
-            let sound = new THREE.Audio(listener); 
-            audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
-              sound.setBuffer(buffer);
-              sound.setLoop(false);
-              sound.setVolume(0.5);
-              sound.play();
-            }) 
+            if (brickMatrix[i][j].resistance == 7) {
+              let sound = new THREE.Audio(listener);
+              audioLoader.load(
+                "../assets/sounds/bloco2.mp3",
+                function (buffer) {
+                  sound.setBuffer(buffer);
+                  sound.setLoop(false);
+                  sound.setVolume(0.5);
+                  sound.play();
+                }
+              );
             }
           }
         }
       }
-    }
-    else if (rlintersects[0]["object"].name == "Pad" && tempoDecorrido > 0.5) {
+    } else if (
+      rlintersects[0]["object"].name == "Pad" &&
+      tempoDecorrido > 0.5
+    ) {
       tempoDecorrido = 0;
       clock.stop();
       clock.start();
@@ -897,18 +964,16 @@ function updateBall(b) {
         );
 
         if (ballVelocity.x > 0) ballVelocity.x *= -1;
-        rebatedorSound.play(); 
+        rebatedorSound.play();
       }
-    }
-    else 
-    {
+    } else {
       let sound = new THREE.Audio(listener);
-      audioLoader.load('./assets/borders.m4a', function(buffer){
+      audioLoader.load("./assets/borders.m4a", function (buffer) {
         sound.setBuffer(buffer);
         sound.setLoop(false);
         sound.setVolume(1);
         sound.play();
-      }) 
+      });
     }
   }
 
@@ -1035,8 +1100,7 @@ function updatePU(pu) {
   }
 }
 
-function render() {
-  //message2.changeMessage("Speed: " + ((speed * 100) / 2.5).toFixed(4));
+function updateGameplay() {
   message2.changeMessage("Lives: " + lives);
 
   if (orbitFlag == true) {
@@ -1047,7 +1111,7 @@ function render() {
   if (orbitFlag == false) {
     orbit.enabled = false;
     orbit.reset();
-    camera.lookAt(new THREE.Vector3(0,-1.1,0)); //Scott
+    camera.lookAt(new THREE.Vector3(0, -1.1, 0)); //Scott
     controls.infoBox.style.display = "none";
   }
 
@@ -1094,9 +1158,6 @@ function render() {
     brickHolder.position.set(brickHolderX, 2.2, 0);
     reset();
   }
-
-  requestAnimationFrame(render);
-  renderer.render(scene, camera); // Render scene
 }
 
 function createBorders() {
@@ -1107,7 +1168,6 @@ function createBorders() {
   });
   borderMaterial.side = THREE.DoubleSide;
 
-  
   let upb = new THREE.Mesh(upBorder, borderMaterial);
   upb.castShadow = true;
   upb.position.set(0.0, 2.5, 0.0);
@@ -1132,9 +1192,12 @@ function createBorders() {
   collidableMeshList.push(rb);
 
   //!Tem que tirar isso até o final do trabalho!!
-  let downBorderMaterial = new THREE.MeshLambertMaterial({transparent: true, opacity: 0.0})
+  let downBorderMaterial = new THREE.MeshLambertMaterial({
+    transparent: true,
+    opacity: 0.0,
+  });
   let downBorder = new THREE.BoxGeometry(2.5, 0.1, 0.2);
-  let db = new THREE.Mesh(downBorder,  downBorderMaterial);
+  let db = new THREE.Mesh(downBorder, downBorderMaterial);
   db.position.set(0.0, -2.55, 0.0);
   db.name = "down";
   scene.add(db);
