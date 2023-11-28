@@ -1132,10 +1132,9 @@ function createBorders() {
   collidableMeshList.push(rb);
 
   //!Tem que tirar isso até o final do trabalho!!
-  let downBorderMaterial = new THREE.Material();
-  downBorderMaterial.transparent = true;
+  let downBorderMaterial = new THREE.MeshLambertMaterial({transparent: true, opacity: 0.0})
   let downBorder = new THREE.BoxGeometry(2.5, 0.1, 0.2);
-  let db = new THREE.Mesh(downBorder, downBorderMaterial);
+  let db = new THREE.Mesh(downBorder,  downBorderMaterial);
   db.position.set(0.0, -2.55, 0.0);
   db.name = "down";
   scene.add(db);
