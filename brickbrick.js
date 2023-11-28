@@ -1153,6 +1153,7 @@ function updateGameplay() {
 
   if (gameStatus == 4) {
     currentScene = finalScene;
+    currentCamera = finalCamera;
   }
 }
 
