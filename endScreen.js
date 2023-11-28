@@ -5,11 +5,10 @@ import {
   initCamera,
   initDefaultBasicLight,
   initRenderer,
-  onWindowResize,
   setDefaultMaterial,
 } from "../libs/util/util.js";
 
-export function createStartScreen() {
+export function endScreen() {
   let scene, renderer, camera, material, light;
 
   scene = new THREE.Scene();
@@ -17,14 +16,6 @@ export function createStartScreen() {
   camera = initCamera(new THREE.Vector3(0, 15, 30));
   material = setDefaultMaterial();
   light = initDefaultBasicLight(scene);
-
-  window.addEventListener(
-    "resize",
-    function () {
-      onWindowResize(camera, renderer);
-    },
-    false
-  );
 
   let glow = 0.5;
 
@@ -59,7 +50,7 @@ export function createStartScreen() {
   function createTextFromString(text, position) {
     const characters = text.split("");
     characters.forEach((character, index) => {
-      const offset = index * 1.75;
+      const offset = index * 3.5;
       createTextGeometry(
         character,
         new THREE.Vector3(position.x + offset, position.y, position.z)
@@ -67,8 +58,11 @@ export function createStartScreen() {
     });
   }
 
-  createTextFromString("B R IC K", new THREE.Vector3(-7, 7, 0));
-  createTextFromString("B R IC K", new THREE.Vector3(-7, 3, 0));
+  createTextFromString(" VOCE", new THREE.Vector3(-10, 7, 0));
+  createTextFromString("VENCEU!", new THREE.Vector3(-10, 3, 0));
+
+  // change inner html of id start-button to "Reiniciar"
+  document.getElementById("start-button").innerHTML = "JOGAR";
 
   function render() {
     requestAnimationFrame(render);
@@ -76,9 +70,8 @@ export function createStartScreen() {
   }
 
   return {
-    render: render,
     scene: scene,
-    camera: camera
+    camera: camera,
     // You can expose other functions or variables if needed
   };
 }

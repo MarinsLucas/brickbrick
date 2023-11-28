@@ -5,8 +5,7 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import { GLTFLoader } from "../build/jsm/loaders/GLTFLoader.js";
 import { CSG } from "../libs/other/CSGMesh.js";
 import { InfoBox, SecondaryBox, initRenderer } from "../libs/util/util.js";
-import { endScreen } from "./endScreen.js";
-import { startScreen } from "./startScreen.js";
+import { createStartScreen } from "./startScreen.js";
 
 class ball {
   constructor(x, y, velocity) {
@@ -16,14 +15,9 @@ class ball {
 }
 
 var currentScene, currentCamera;
-
-var start = new startScreen();
-var initialScene = start.scene;
-var initCamera = start.camera;
-
-var end = new endScreen();
-var finalScene = end.scene;
-var finalCamera = end.camera;
+var startScreen = new createStartScreen();
+var initialScene = startScreen.scene;
+var initCamera = startScreen.camera;
 
 // Scene variables
 var scene = new THREE.Scene(); // Create main scene
@@ -46,7 +40,6 @@ let light, light2;
 let dh = 0.21; //delta de
 const clock = new THREE.Clock();
 var tempoDecorrido = 0;
-var unbreakableBricks = 0;
 
 // Audio variables
 const listener = new THREE.AudioListener();
@@ -640,8 +633,7 @@ function updateBrick(brick) {
         powerUpsList.push(obj2);
       }
       removeBrick(obj.name);
-      if (brickHolder.children.length - unbreakableBricks == 0) gameStatus = 4;
-
+      if (brickHolder.children.length == 0) gameStatus = 4;
       break;
     case 1:
       brick.color = "lightgrey";
@@ -719,7 +711,6 @@ function createBrick(x, y, resistance, brickHolder) {
       break;
     case 7:
       color = "yellow";
-      unbreakableBricks += 1;
       break;
   }
   var material = new THREE.MeshLambertMaterial({
@@ -1110,7 +1101,7 @@ function updatePU(pu) {
 }
 
 function updateGameplay() {
-  message2.changeMessage("Unbreakable Bricks: " + unbreakableBricks);
+  message2.changeMessage("Lives: " + lives);
 
   if (orbitFlag == true) {
     orbit.enabled = true;
@@ -1152,7 +1143,20 @@ function updateGameplay() {
   }
 
   if (gameStatus == 4) {
-    currentScene = finalScene;
+    message.changeMessage("You've won!!! Press R to restart!");
+    //Change Nivel
+    if (level == 1) {
+      level = 2;
+      brickHolderX = -0.95;
+    } else if (level == 2) {
+      level = 3;
+      brickHolderX = -1.05;
+    } else {
+      level = 1;
+      brickHolderX = -1.05;
+    }
+    brickHolder.position.set(brickHolderX, 2.2, 0);
+    reset();
   }
 }
 
