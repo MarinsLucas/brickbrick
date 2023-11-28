@@ -14,6 +14,10 @@ class ball {
   }
 }
 
+let powerupType = true; 
+let antimatbool = false;
+let antimattime = 0; 
+let antimatclock = new THREE.Clock();
 let lives = 5;
 let puColor = 0xff0000;
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu ; 4 = ganhou
@@ -343,8 +347,7 @@ function createBall(x, y) {
     color: "rgb(255,255,255)",
     shininess: "0.001",
     specular: "rgb(255,255,255)",
-    emissive: "rgb(255,255,255)",
-    emissiveIntensity: "1.0",
+
   });
   var obj = new THREE.Mesh(geometry, material);
   obj.position.set(x, y, 0);
@@ -503,7 +506,7 @@ function initializeCamera() {
   let w = window.innerWidth;
   let h = window.innerHeight;
   let camera = new THREE.PerspectiveCamera(60, 2, 1, 7.7); //fov, aspect, near, far
-  aspect = w / h;
+  aspect = 2;
   let f = 5;
   camera.position.set(0, -2.9, 2.5);
   if (camera instanceof THREE.PerspectiveCamera) {
@@ -558,26 +561,37 @@ function updateBrick(brick) {
       brokenBricks += 1;
 
       //Bamboleio
-      if (brokenBricks >= 10 && ballLista.length == 1) {
+      if (brokenBricks >= 10 && (ballLista.length == 1 || !powerupType)) {
         var position = new THREE.Vector3();
         obj.getWorldPosition(position);
 
         //Objeto caindo para o powerup
-        let pu = new THREE.OctahedronGeometry(0.07, 0);
-        let pumaterial = new THREE.MeshPhongMaterial({
-          color: "rgb(255,255,255)",
-          shininess: "0.001",
-          specular: "rgb(255,255,255)",
-        });
+        let pu = new THREE.CapsuleGeometry(0.05, 0.1, 2, 7);
+        let texture;
+        let name;
+        if(powerupType==true)
+        {
+          const textureLoader = new THREE.TextureLoader();
+          texture = textureLoader.load('./assets/T.png');
+          name = "duplica"; 
+        }else
+        {
+          const textureLoader = new THREE.TextureLoader();
+          texture = textureLoader.load('./assets/S.png');
+          name = "antimateria"; 
+        }
+        
+        let pumaterial =  new THREE.MeshLambertMaterial({map:texture});
+
         var obj2 = new THREE.Mesh(pu, pumaterial);
         obj2.position.set(position.x, position.y, 0);
+        obj2.rotateZ(MathUtils.degToRad(90))
         obj2.castShadow = true;
-        var light = new THREE.PointLight(0xffffff, 1, 1);
-        light.position.set(0, 0, 0);
-        obj2.add(light);
+        obj2.name = name;
         scene.add(obj2);
         brokenBricks = 0;
         powerUpsList.push(obj2);
+        powerupType = !powerupType;
       }
       removeBrick(obj.name);
       if (brickHolder.children.length == 0) gameStatus = 4;
@@ -683,6 +697,22 @@ function updateBall(b) {
   bola.translateX(ballVelocity.x);
   bola.translateY(ballVelocity.y);
 
+  if(antimatbool)
+  {
+    bola.material = new THREE.MeshPhongMaterial({
+      color: "rgb(255,0,0)",
+      shininess: "0.001",
+      specular: "rgb(255,0,0)",
+  
+    });
+  }else
+  { bola.material = new THREE.MeshPhongMaterial({
+    color: "rgb(255,255,255)",
+    shininess: "0.001",
+    specular: "rgb(255,255,255)",
+
+  });}
+
   const tbraycaster = new THREE.Raycaster();
   const tbdirection = new THREE.Vector3(
     0,
@@ -745,7 +775,9 @@ function updateBall(b) {
       sound.play();
     })
   } else if (tbintersects.length > 0 && tbintersects[0].distance <= 0.05) {
-    ballVelocity.y *= -1;
+    if(!antimatbool)
+      ballVelocity.y *= -1;
+
     if (tbintersects[0]["object"].parent == brickHolder) {
       var id = tbintersects[0]["object"].name.parseInt;
       for (let j = 0; j < cols; j++) {
@@ -806,6 +838,8 @@ function updateBall(b) {
     }
     else 
     {
+      if(antimatbool)
+        ballVelocity.y *= -1;
       let sound = new THREE.Audio(listener);
       audioLoader.load('./assets/borders.m4a', function(buffer){
         sound.setBuffer(buffer);
@@ -827,7 +861,8 @@ function updateBall(b) {
 
   const rlintersects = tbraycaster.intersectObjects(collidableMeshList);
   if (rlintersects.length > 0 && rlintersects[0].distance <= 0.07) {
-    ballVelocity.x *= -1;
+    if(!antimatbool)
+      ballVelocity.x *= -1;
 
     if (rlintersects[0]["object"].parent == brickHolder) {
       var id = rlintersects[0]["object"].name.parseInt;
@@ -902,6 +937,8 @@ function updateBall(b) {
     }
     else 
     {
+      if(antimatbool)
+        ballVelocity.x *= -1;
       let sound = new THREE.Audio(listener);
       audioLoader.load('./assets/borders.m4a', function(buffer){
         sound.setBuffer(buffer);
@@ -981,6 +1018,7 @@ function increaseSpeed(b) {
   }
 }
 
+//Na verdade, agora triplica as bolas
 function duplicaBola() {
   const matrizRotacao = new THREE.Matrix4();
   matrizRotacao.makeRotationAxis(new THREE.Vector3(0, 0, 1), Math.PI / 4);
@@ -996,12 +1034,28 @@ function duplicaBola() {
     novaBola.velocity.x = aux;
   }
   ballLista.push(novaBola);
+
+  matrizRotacao.makeRotationAxis(new THREE.Vector3(0, 0, 1), -Math.PI / 4);
+  var novaBola2 = new ball(
+    ballLista[0].obj.position.x,
+    ballLista[0].obj.position.y,
+    ballLista[0].velocity.clone().applyMatrix4(matrizRotacao)
+  );
+
+  if (Math.abs(novaBola2.velocity.y) < 0.01) {
+    var aux = novaBola2.velocity.y;
+    novaBola2.velocity.y = novaBola2.velocity.x;
+    novaBola2.velocity.x = aux;
+  }
+  ballLista.push(novaBola2);
 }
 
 function updatePU(pu) {
-  pu.translateY(-0.015);
-  puColor += 500;
-  pu.material.color.setHex(puColor);
+  //pu.translateX(-0.015);
+  /* puColor += 500;
+  pu.material.color.setHex(puColor); */
+  pu.rotation.x +=0.1; 
+  pu.position.y -= 0.01; 
   const tbraycaster = new THREE.Raycaster();
   const tbdirection = new THREE.Vector3(0, -1, 0);
 
@@ -1020,7 +1074,14 @@ function updatePU(pu) {
     }
     scene.remove(pu);
     //BARABARABARA: AUUMENTAR ESSE NÚMERO, PARA AS ESTRELAS
-    if (ballLista.length <= 1) duplicaBola();
+    if (ballLista.length <= 1 && pu.name == "duplica") duplicaBola();
+    else
+    {
+      antimatclock.stop();
+      antimatclock.start();
+      antimatbool = true;
+      antimattime = 0;
+    }
   }
   if (
     tbintersects.length > 0 &&
@@ -1047,7 +1108,7 @@ function render() {
   if (orbitFlag == false) {
     orbit.enabled = false;
     orbit.reset();
-    camera.lookAt(new THREE.Vector3(0,-1.1,0)); //Scott
+    camera.lookAt(new THREE.Vector3(0,-1.1,0));
     controls.infoBox.style.display = "none";
   }
 
@@ -1094,7 +1155,9 @@ function render() {
     brickHolder.position.set(brickHolderX, 2.2, 0);
     reset();
   }
-
+  antimattime = antimatclock.getElapsedTime();
+  if(antimattime > 7)
+    antimatbool = false; 
   requestAnimationFrame(render);
   renderer.render(scene, camera); // Render scene
 }
