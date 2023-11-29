@@ -673,7 +673,7 @@ function updateBrick(brick) {
       brokenBricks += 1;
 
       //Bamboleio
-      if (brokenBricks >= 10 && (ballLista.length == 1 || !powerupType)) {
+      if (brokenBricks >= 1 && (ballLista.length == 1 || !powerupType)) {
         var position = new THREE.Vector3();
         obj.getWorldPosition(position);
 
@@ -899,6 +899,14 @@ function updateBall(b) {
               brickMatrix[i][j].resistance = 1; 
               //Som de bloco mais resistente que o normal
               let sound = new THREE.Audio(listener); 
+              if(antimatbool)
+              audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+              else
               audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
                 sound.setBuffer(buffer);
                 sound.setLoop(false);
@@ -910,6 +918,14 @@ function updateBall(b) {
             {
               brickMatrix[i][j].resistance = 0;
               let sound = new THREE.Audio(listener);
+              if(antimatbool)
+              audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+              else
               audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
                 sound.setBuffer(buffer);
                 sound.setLoop(false);
@@ -953,7 +969,7 @@ function updateBall(b) {
       if(antimatbool)
         ballVelocity.y *= -1;
       let sound = new THREE.Audio(listener);
-      audioLoader.load('./assets/borders.m4a', function(buffer){
+      audioLoader.load('./assets/borders.ogg', function(buffer){
         sound.setBuffer(buffer);
         sound.setLoop(false);
         sound.setVolume(1);
@@ -985,6 +1001,14 @@ function updateBall(b) {
               brickMatrix[i][j].resistance = 1; 
               //Som de bloco mais resistente que o normal
               let sound = new THREE.Audio(listener); 
+              if(antimatbool)
+              audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+              else
               audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
                 sound.setBuffer(buffer);
                 sound.setLoop(false);
@@ -996,6 +1020,14 @@ function updateBall(b) {
             {
               brickMatrix[i][j].resistance = 0;
               let sound = new THREE.Audio(listener);
+              if(antimatbool)
+              audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                sound.play();
+              }) 
+              else
               audioLoader.load('../assets/sounds/bloco1.mp3', function(buffer){
                 sound.setBuffer(buffer);
                 sound.setLoop(false);
@@ -1006,6 +1038,14 @@ function updateBall(b) {
             updateBrick(brickMatrix[i][j]);
             if(brickMatrix[i][j].resistance==7){
             let sound = new THREE.Audio(listener); 
+            if(antimatbool)
+            audioLoader.load('../assets/sounds/bloco3.mp3', function(buffer){
+              sound.setBuffer(buffer);
+              sound.setLoop(false);
+              sound.setVolume(0.5);
+              sound.play();
+            }) 
+            else
             audioLoader.load('../assets/sounds/bloco2.mp3', function(buffer){
               sound.setBuffer(buffer);
               sound.setLoop(false);
@@ -1052,7 +1092,7 @@ function updateBall(b) {
       if(antimatbool)
         ballVelocity.x *= -1;
       let sound = new THREE.Audio(listener);
-      audioLoader.load('./assets/borders.m4a', function(buffer){
+      audioLoader.load('./assets/borders.ogg', function(buffer){
         sound.setBuffer(buffer);
         sound.setLoop(false);
         sound.setVolume(1);
