@@ -317,6 +317,8 @@ var message = new SecondaryBox("");
 var message2 = new SecondaryBox("");
 message2.box.style.top = "0";
 message2.box.style.bottom = "";
+message2.box.style.right = "0";
+message2.box.style.left = "";
 
 //change the position of the message to the top of the screen
 
