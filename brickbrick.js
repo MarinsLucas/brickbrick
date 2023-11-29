@@ -5,7 +5,111 @@ import { PointerLockControls } from "../build/jsm/controls/PointerLockControls.j
 import { GLTFLoader } from "../build/jsm/loaders/GLTFLoader.js";
 import { CSG } from "../libs/other/CSGMesh.js";
 import KeyboardState from "../libs/util/KeyboardState.js";
-import { InfoBox, SecondaryBox, initRenderer } from "../libs/util/util.js";
+import { InfoBox, SecondaryBox, initRenderer} from "../libs/util/util.js";
+import { FontLoader } from "../build/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "../build/jsm/geometries/TextGeometry.js";
+
+let sceneIndex = 0; //0 = main menu; 1 = jogo normal ; 2 = menu final.
+
+//Main menu
+let menuscene = new THREE.Scene();
+let menuLight = new THREE.AmbientLight(0xffffff,0.3);
+let menucamera =  new THREE.PerspectiveCamera(60, 2, 1, 10000); //fov, aspect, near, far
+menuscene.add(menucamera);
+menuscene.add(menuLight); 
+menucamera.position.set(0,0, 20);
+menucamera.lookAt(0, -1, 0)
+const botao = document.createElement('button');
+botao.innerHTML = "START";
+botao.style.position = 'absolute';
+botao.style.top = '50%';
+botao.style.left = '50%';
+botao.style.transform = 'translate(-50%, 50%)';
+botao.style.width = "200px";
+botao.style.height = "75px";
+botao.style.fontSize = "50px";
+document.body.appendChild(botao);
+
+let glow = 0.5; 
+
+
+botao.addEventListener('click', function(){
+  sceneIndex = 1; 
+  botao.style.display = 'none'; 
+})
+function createTextGeometry(character, position, cena) {
+  const loader = new FontLoader();
+  loader.load(
+    "../assets/fonts/helvetiker_bold.typeface.json",
+    function (font) {
+      const material = new THREE.MeshPhongMaterial({
+        emissive: 0xffffff,
+        emissiveIntensity: glow,
+        color: new THREE.Color(Math.random(), Math.random(), Math.random()),
+      });
+
+      const geometry = new TextGeometry(character, {
+        font: font,
+        size: 3,
+        height: 0.1,
+        curveSegments: 12,
+      });
+
+      const textMesh = new THREE.Mesh(geometry, material);
+      cena.add(textMesh);
+      textMesh.position.copy(position);
+
+      textMesh.castShadow = true;
+      textMesh.receiveShadow = true;
+    }
+  );
+  
+}
+
+function createTextFromString(text, position, cena) {
+  const characters = text.split("");
+  characters.forEach((character, index) => {
+    const offset = index * 1.75;
+    createTextGeometry(
+      character,
+      new THREE.Vector3(position.x + offset, position.y, position.z),
+      cena
+    );
+  });
+}
+
+createTextFromString("B R IC K", new THREE.Vector3(-7, 5, 0),menuscene);
+createTextFromString("B R IC K", new THREE.Vector3(-7, 1, 0),menuscene);
+//Fim do menu Principal
+
+//Menu Final
+let endscene = new THREE.Scene();
+let endLight = new THREE.AmbientLight(0xffffff,0.3);
+let endcamera =  new THREE.PerspectiveCamera(60, 2, 1, 10000); //fov, aspect, near, far
+endscene.add(endcamera);
+endscene.add(endLight); 
+endcamera.position.set(0,0, 20);
+endcamera.lookAt(0, -1, 0)
+const botaofinal = document.createElement('button');
+botaofinal.innerHTML = "RESTART";
+botaofinal.style.position = 'absolute';
+botaofinal.style.top = '50%';
+botaofinal.style.left = '50%';
+botaofinal.style.transform = 'translate(-50%, 50%)';
+botaofinal.style.width = "200px";
+botaofinal.style.height = "75px";
+botaofinal.style.fontSize = "50px";
+document.body.appendChild(botaofinal);
+
+botaofinal.addEventListener('click', function(){
+  sceneIndex = 0; 
+  botaofinal.style.display = 'none'; 
+})
+
+createTextFromString("G A M E", new THREE.Vector3(-7, 5, 0), endscene);
+createTextFromString("O V E R", new THREE.Vector3(-7, 1 , 0), endscene);
+//Fim do menu final
+
 
 class ball {
   constructor(x, y, velocity) {
@@ -19,7 +123,6 @@ let antimatbool = false;
 let antimattime = 0; 
 let antimatclock = new THREE.Clock();
 let lives = 5;
-let puColor = 0xff0000;
 let gameStatus = 0; //0 = jogo não começou; 1 = jogo rolando ; 2 = jogo pausado ; 3 = perdeu ; 4 = ganhou
 let initialSpeed = 0.025,
   finalSpeed = 0.05,
@@ -112,7 +215,7 @@ camera.add(listener);
 window.addEventListener(
   "resize",
   function () {
-    onWindowResizeOrthographic(camera, renderer);
+    onWindowResize(camera, renderer);
   },
   false
 );
@@ -211,7 +314,7 @@ playerControls.addEventListener("unlock", () => {
   isPointerLocked = false;
 });
 var message = new SecondaryBox("");
-var message2 = new SecondaryBox("Seremos campões");
+var message2 = new SecondaryBox("");
 message2.box.style.top = "0";
 message2.box.style.bottom = "";
 
@@ -523,7 +626,7 @@ function initializeCamera() {
   return camera;
 }
 
-function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
+function onWindowResize(camera, renderer, frustumSize = 5) {
   let w = window.innerWidth;
   let h = window.innerHeight;
   //let aspect = 0.5;
@@ -539,6 +642,15 @@ function onWindowResizeOrthographic(camera, renderer, frustumSize = 5) {
   }
   //  camera.updateProjectionMatrix();
   renderer.setSize(w, w / 2);
+
+  //Botões dos menus
+  botao.style.width = window.innerWidth/10 + "px";
+  botao.style.height = window.innerHeight/20 + "px";
+  botao.style.fontSize = window.innerHeight/25 + "px";
+
+  botaofinal.style.width = window.innerWidth/10 + "px";
+  botaofinal.style.height = window.innerHeight/20 + "px";
+  botaofinal.style.fontSize = window.innerHeight/25 + "px";
 }
 
 function removeBrick(brickName) {
@@ -594,7 +706,7 @@ function updateBrick(brick) {
         powerupType = !powerupType;
       }
       removeBrick(obj.name);
-      if (brickHolder.children.length == 0) gameStatus = 4;
+      if (brickHolder.children.length == 0 || (brickHolder.children.length == 8 && level == 3)) gameStatus = 4;
       break;
     case 1:
       brick.color = "lightgrey";
@@ -1097,69 +1209,116 @@ function updatePU(pu) {
 }
 
 function render() {
-  //message2.changeMessage("Speed: " + ((speed * 100) / 2.5).toFixed(4));
-  message2.changeMessage("Lives: " + lives);
+  if (sceneIndex == 0)
+  {
+    if(sceneIndex != 0)
+    {
+      botao.style.display = 'none';
+    }
+    else
+    {
+      botao.style.display = '';
+    }
+    if(sceneIndex != 2)
+    {
+      botaofinal.style.display = 'none';
+    }
+    else
+    {
+      botaofinal.style.display ='';
+    }
 
-  if (orbitFlag == true) {
-    orbit.enabled = true;
-    controls.infoBox.style.display = "block";
+    requestAnimationFrame(render);
+    renderer.render(menuscene, menucamera); // Render scene
   }
+  else if(sceneIndex == 1){
+    message2.changeMessage("Lives: " + lives);
 
-  if (orbitFlag == false) {
-    orbit.enabled = false;
-    orbit.reset();
-    camera.lookAt(new THREE.Vector3(0,-1.1,0));
-    controls.infoBox.style.display = "none";
-  }
+    if (orbitFlag == true) {
+      orbit.enabled = true;
+      controls.infoBox.style.display = "block";
+    }
 
-  if (gameStatus == 0) {
-    stickBall();
-    message.changeMessage("Press Space and then Left Click to start");
-  }
+    if (orbitFlag == false) {
+      orbit.enabled = false;
+      orbit.reset();
+      camera.lookAt(new THREE.Vector3(0,-1.1,0));
+      controls.infoBox.style.display = "none";
+    }
 
-  if (gameStatus == 1) {
-    for (let i = 0; i < ballLista.length; i++) {
-      if (ballLista[i]) {
-        increaseSpeed(ballLista[i]);
-        updateBall(ballLista[i]);
+    if (gameStatus == 0) {
+      stickBall();
+      message.changeMessage("Press Space and then Left Click to start");
+    }
+
+    if (gameStatus == 1) {
+      for (let i = 0; i < ballLista.length; i++) {
+        if (ballLista[i]) {
+          increaseSpeed(ballLista[i]);
+          updateBall(ballLista[i]);
+        }
       }
+      for (let i = 0; i < powerUpsList.length; i++) {
+        updatePU(powerUpsList[i]);
+      }
+      message.changeMessage("Press Space to pause");
     }
-    for (let i = 0; i < powerUpsList.length; i++) {
-      updatePU(powerUpsList[i]);
+
+    if (gameStatus == 2) {
+      message.changeMessage("Press Space to unpause");
     }
-    message.changeMessage("Press Space to pause");
-  }
 
-  if (gameStatus == 2) {
-    message.changeMessage("Press Space to unpause");
-  }
-
-  if (gameStatus == 3) {
-    stickBall();
-    message.changeMessage("Left click to continue!");
-  }
-
-  if (gameStatus == 4) {
-    message.changeMessage("You've won!!! Press R to restart!");
-    //Change Nivel
-    if (level == 1) {
-      level = 2;
-      brickHolderX = -0.95;
-    } else if (level == 2) {
-      level = 3;
-      brickHolderX = -1.05;
-    } else {
-      level = 1;
-      brickHolderX = -1.05;
+    if (gameStatus == 3) {
+      stickBall();
+      message.changeMessage("Left click to continue!");
     }
-    brickHolder.position.set(brickHolderX, 2.2, 0);
-    reset();
+
+    if (gameStatus == 4) {
+      message.changeMessage("You've won!!! Press R to restart!");
+      //Change Nivel
+      if (level == 1) {
+        level = 2;
+        brickHolderX = -0.95;
+      } else if (level == 2) {
+        level = 3;
+        brickHolderX = -1.05;
+      } else {
+        level = 1;
+        brickHolderX = -1.05;
+        sceneIndex = 2; 
+      }
+      brickHolder.position.set(brickHolderX, 2.2, 0);
+      reset();
+    }
+    antimattime = antimatclock.getElapsedTime();
+    if(antimattime > 7)
+      antimatbool = false; 
+    requestAnimationFrame(render);
+    renderer.render(scene, camera); // Render scene
   }
-  antimattime = antimatclock.getElapsedTime();
-  if(antimattime > 7)
-    antimatbool = false; 
-  requestAnimationFrame(render);
-  renderer.render(scene, camera); // Render scene
+  else if(sceneIndex ==2)
+  {
+    if(sceneIndex != 0)
+    {
+      botao.style.display = 'none';
+    }
+    else
+    {
+      botao.style.display = '';
+    }
+    if(sceneIndex != 2)
+    {
+      botaofinal.style.display = 'none';
+    }
+    else
+    {
+      botaofinal.style.display ='';
+    }
+    
+    requestAnimationFrame(render);
+    renderer.render(endscene, endcamera);
+  }
+  
 }
 
 function createBorders() {
