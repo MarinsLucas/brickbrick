@@ -871,7 +871,7 @@ function updateBrick(brick) {
       brokenBricks += 1;
 
       //Bamboleio
-      if (brokenBricks >= 1 && (ballLista.length == 1 || !powerupType)) {
+      if (brokenBricks >= 10 && (ballLista.length == 1 || !powerupType)) {
         var position = new THREE.Vector3();
         obj.getWorldPosition(position);
 
