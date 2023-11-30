@@ -11,7 +11,8 @@ import KeyboardState from "../libs/util/KeyboardState.js";
 import { InfoBox, SecondaryBox, initRenderer } from "../libs/util/util.js";
 
 var buttons = new Buttons(onButtonDown, onButtonUp);
-
+let isPointerDown = false;
+let isFullscreen = false;
 let sceneIndex = 0; //0 = main menu; 1 = jogo normal ; 2 = menu final.
 
 //Main menu
@@ -219,7 +220,7 @@ let brickHolderX;
 if (level == 1) brickHolderX = -1.05;
 if (level == 2) brickHolderX = -0.95;
 if (level == 3) brickHolderX = -1.05;
-brickHolder.position.set(brickHolderX, 2.2, 0);
+brickHolder.position.set(brickHolderX, 1.5, 0);
 scene.add(brickHolder);
 
 createBorders();
@@ -238,6 +239,7 @@ ballLista.push(
 let isPointerLocked = false;
 
 scene.add(camera);
+let hitbox = createHitbox();
 let powerUpsList = [];
 
 botao.addEventListener("click", function () {
@@ -299,7 +301,7 @@ document.addEventListener("keydown", (event) => {
       level = 1;
       brickHolderX = -1.05;
     }
-    brickHolder.position.set(brickHolderX, 2.2, 0);
+    brickHolder.position.set(brickHolderX, 1.5, 0);
     reset();
   }
 
@@ -327,8 +329,8 @@ var message = new SecondaryBox("");
 var message2 = new SecondaryBox("");
 message2.box.style.top = "0";
 message2.box.style.bottom = "";
-message2.box.style.right = "0";
-message2.box.style.left = "";
+message2.box.style.right = "";
+message2.box.style.left = "0";
 
 //change the position of the message to the top of the screen
 
@@ -374,6 +376,8 @@ function onPointerMoveLocked(event) {
 }
 
 function onButtonDown(event) {
+  event.preventDefault();
+
   switch (event.target.id) {
     case "launch":
       if (gameStatus == 0 || gameStatus == 3) {
@@ -966,6 +970,14 @@ function updatePad() {
 
   function onPointerUp(event) {
     isPointerDown = false;
+
+    switch (event.target.id) {
+      case "launch":
+        break;
+      case "fullscreen":
+        break;
+      // Use pointerup for all buttons except "pause"
+    }
   }
 
   // Event listener for pointer move
@@ -1137,6 +1149,7 @@ function updateBall(b) {
         bola.position.set(pad.position.x, pad.position.y + 0.2, 0);
         gameStatus = 3;
         pad.position.set(0, -2.1, 0);
+        hitbox.position.copy(pad.position);
         ballVelocity.x = 0;
         ballVelocity.y = initialSpeed * Math.sin(MathUtils.degToRad(90));
         for (let i = powerUpsList.length - 1; i >= 0; i--) {
@@ -1518,7 +1531,7 @@ function render() {
         brickHolderX = -1.05;
         sceneIndex = 2;
       }
-      brickHolder.position.set(brickHolderX, 2.2, 0);
+      brickHolder.position.set(brickHolderX, 1.5, 0);
       reset();
     }
     antimattime = antimatclock.getElapsedTime();
@@ -1584,4 +1597,9 @@ function createBorders() {
   db.name = "down";
   scene.add(db);
   collidableMeshList.push(db);
+
+  // push all borders down by 0.5
+  collidableMeshList.forEach((border) => {
+    border.position.y -= 0.5;
+  });
 }
