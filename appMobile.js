@@ -1515,6 +1515,8 @@ function render() {
     if (gameStatus == 3) {
       stickBall();
       message.changeMessage("Touch the button to continue!");
+      ballLista[0].velocity.x = 0;
+      ballLista[0].velocity.y = initialSpeed;
     }
 
     if (gameStatus == 4) {
